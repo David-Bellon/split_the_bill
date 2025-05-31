@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Split The Bill</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Split The Bill</h1>
+            <p class="subtitle">Take a photo of your receipt and we'll help you split it!</p>
+        </header>
+
+        <main>
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-container">
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment">
+                    <label for="cameraInput" class="camera-btn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                        Take Photo
+                    </label>
+                    <p class="upload-hint">or</p>
+                    <input type="file" id="uploadInput" accept="image/*">
+                    <button id="uploadBtn" class="secondary-btn">Upload Image</button>
+                </div>
+            </div>
+
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <div class="preview-container">
+                    <img id="previewImage" alt="Receipt preview">
+                    <button id="retakeBtn" class="secondary-btn">Take Another Photo</button>
+                </div>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="section-header">
+                    <h2>Receipt Items</h2>
+                    <button id="addItemBtn" class="secondary-btn">Add New Item</button>
+                    <div class="people-section">
+                        <div class="people-input">
+                            <input type="text" id="personName" placeholder="Add person's name">
+                            <button id="addPersonBtn" class="secondary-btn">Add</button>
+                        </div>
+                        <div class="people-list" id="peopleList">
+                            <!-- People will be added here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="items-container">
+                    <div id="addItemForm" class="add-item-form" style="display: none;">
+                        <h3>Add New Item</h3>
+                        <div class="form-group">
+                            <input type="text" id="newItemName" class="form-input" placeholder="Item name">
+                            <input type="number" id="newItemQuantity" class="form-input" placeholder="Quantity" value="1" min="1">
+                            <input type="number" id="newItemPrice" class="form-input" placeholder="Price" step="0.01" min="0">
+                            <div class="button-group">
+                                <button id="saveItemBtn" class="primary-btn">Save Item</button>
+                                <button id="cancelItemBtn" class="secondary-btn">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="editItemForm" class="add-item-form" style="display: none;">
+                        <h3>Edit Item</h3>
+                        <div class="form-group">
+                            <input type="text" id="editItemName" class="form-input" placeholder="Item name">
+                            <input type="number" id="editItemQuantity" class="form-input" placeholder="Quantity" min="1">
+                            <input type="number" id="editItemPrice" class="form-input" placeholder="Price" step="0.01" min="0">
+                            <div class="button-group">
+                                <button id="saveEditBtn" class="primary-btn">Save Changes</button>
+                                <button id="cancelEditBtn" class="secondary-btn">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="items-list" id="itemsList">
+                        <!-- Items will be populated here -->
+                    </div>
+                </div>
+
+                <div class="summary-section" id="summarySection" style="display: none;">
+                    <div class="summary-header">
+                        <h3>Bill Summary</h3>
+                        <button id="exportBtn" class="export-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="7 10 12 15 17 10"/>
+                                <line x1="12" y1="15" x2="12" y2="3"/>
+                            </svg>
+                            Share
+                        </button>
+                    </div>
+                    <div id="summaryList">
+                        <!-- Summary will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Processing your receipt...</p>
+            </div>
+        </main>
+    </div>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html> 
