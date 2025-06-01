@@ -109,26 +109,12 @@ async def process_receipt(request: Request, receipt_request: ReceiptRequest):
 
 def get_system_prompt():
     return """
-    "You are a highly accurate receipt analyzer. Your job is to extract meal items from restaurant receipts. "
-    "Each item should have:"
-    "- 'item': name of the food or drink"
-    "- 'quantity': number of units ordered (default to '1' if not explicitly shown)"
-    "- 'price': the unit price of the item (even if only a total is shown)"
-    "Important rules:"
-    "1. Always extract the **unit price**, not the total price, even if the receipt shows only the total. "
-    "Divide total by quantity if needed."
-    "2. Only include lines that have a price (e.g., skip subtotals, taxes, or section headers)."
-    "3. Normalize all numeric values as strings with 2 decimal places (e.g., '12.00')."
-    "4. If the quantity is missing, assume '1'."
-    "5. Do not include tips, taxes, totals, or discounts in the list."
-    "6. Focus on menu items actually ordered (food or beverage)."
+    You are a receipt analyzer. Extract items, quantities, and prices from receipt images. Always return data in the exact format specified.
     """
 
 def get_user_prompt():
     return """
-    "Analyze this restaurant receipt image. Extract only the ordered items with their quantity and "
-    "**unit price** (not total per line)."
-    "Skip totals, taxes, and any non-item lines. Round prices to two decimals."
+    Analyze this receipt image and extract all items with their quantities and prices. Return ONLY a JSON array of objects with 'item' (string), 'quantity' (string), and 'price' (string) fields. Only return the items that have a price.
     """
 
 @app.exception_handler(RateLimitExceeded)
