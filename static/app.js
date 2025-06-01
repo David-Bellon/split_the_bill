@@ -81,16 +81,34 @@ document.addEventListener('DOMContentLoaded', () => {
             // Remove the clone
             document.body.removeChild(clone);
 
-            // Convert to blob and download
-            canvas.toBlob((blob) => {
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = 'bill-summary.png';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+            // Convert to blob
+            canvas.toBlob(async (blob) => {
+                try {
+                    // Create a File object from the blob
+                    const file = new File([blob], 'bill-summary.png', { type: 'image/png' });
+                    
+                    // Check if Web Share API is available
+                    if (navigator.share) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Bill Summary',
+                            text: 'Here\'s the bill summary from Split The Bill!'
+                        });
+                    } else {
+                        // Fallback to download if Web Share API is not available
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'bill-summary.png';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                    }
+                } catch (error) {
+                    console.error('Error sharing:', error);
+                    alert('Failed to share the summary. Please try again.');
+                }
             }, 'image/png');
         } catch (error) {
             console.error('Error exporting summary:', error);
