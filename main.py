@@ -33,10 +33,14 @@ limiter = Limiter(key_func=get_client_ip)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+origins = [
+    "https://bill-splitter.odblabs.com"
+]
+
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend domain
+    allow_origins=origins,  # In production, replace with your frontend domain
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -89,8 +93,7 @@ async def process_receipt(request: Request, receipt_request: ReceiptRequest):
                     ]
                 }
             ],
-            response_format=ReceiptResponse,
-            max_tokens=500
+            response_format=ReceiptResponse
         )
 
         # Extract the JSON response
@@ -114,7 +117,18 @@ def get_system_prompt():
 
 def get_user_prompt():
     return """
-    Analyze this receipt image and extract all items with their quantities and prices. Return ONLY a JSON array of objects with 'item' (string), 'quantity' (string), and 'price' (string) fields. Only return the items that have a price.
+    Analyze the image of a restaurant receipt and extract only the purchased items that have prices.
+    Return a JSON array of objects, each with:
+    - 'item' (string): the name or description of the item
+    - 'quantity' (string): the quantity ordered
+    - 'price' (string): the unit price of the item (not the total)
+
+    Important rules:
+    - If an item shows quantity x unit price = total (e.g., 2 x $5.00 = $10.00), return only the unit price ($5.00).
+    - Do NOT include totals or extended prices.
+    - Skip items without a clear price.
+
+    Respond only with the JSON array. No explanations or extra text.
     """
 
 @app.exception_handler(RateLimitExceeded)

@@ -28,12 +28,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const editItemPrice = document.getElementById('editItemPrice');
     const saveEditBtn = document.getElementById('saveEditBtn');
     const cancelEditBtn = document.getElementById('cancelEditBtn');
-    
+    const manualInputBtn = document.getElementById('manualInputBtn');
+    const setBillNameBtn = document.getElementById('setBillNameBtn');
+    const billName = document.getElementById('billName');
+    const nameSelector = document.getElementById('nameSelector');
+
+
     let people = [];
     let items = [];
     let itemAssignments = {};
     let receiptImageBase64 = null;
     let currentEditIndex = -1;
+    let nameSelected = null;
+	let personItem = [];
+
+	function getPersonItem(name, item, extraData = {}) {
+		const existing = personItem.find(obj => obj.name === name && obj.item === item);
+		if (existing) {
+			Object.assign(existing, extraData);
+		}
+		else {
+			personItem.push({name, item, ...extraData});
+		}
+
+		console.log(personItem);
+	}
+
+    function updateNames() {
+        nameSelector.innerHTML = "";
+        people.forEach(name => {
+            const btn = document.createElement('div');
+            btn.classList.add('name-option')
+            btn.textContent = name;
+            btn.addEventListener('click', () => {
+            document.querySelectorAll('.name-option').forEach(el => el.classList.remove('selected'));
+            btn.classList.add('selected');
+
+            nameSelected = name;
+                document.getElementById('payedBy').textContent = 'Pagado por ' + name;
+            });
+
+            nameSelector.appendChild(btn);
+        });
+    }
 
     // Convert File to Base64
     function fileToBase64(file) {
@@ -45,6 +82,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+
+    manualInputBtn.addEventListener('click', () => {
+	    resultsSection.style.display = 'block';
+    });
+	
     // Export summary as image
     exportBtn.addEventListener('click', async () => {
         try {
@@ -128,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 processImage(file);
             } catch (error) {
                 console.error('Error converting image to base64:', error);
-                alert('Failed to process the image. Please try again.');
+                alert(error);
             }
         }
     });
@@ -143,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 processImage(file);
             } catch (error) {
                 console.error('Error converting image to base64:', error);
-                alert('Failed to process the image. Please try again.');
+                alert(error);
             }
         }
     });
@@ -193,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
             displayResults(data.items);
         } catch (error) {
             console.error('Error processing image:', error);
-            alert('Failed to process the image. Please try again.');
+            alert(error);
         } finally {
             hideLoading();
         }
@@ -226,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateItemAssignments(index);
         });
         resultsSection.style.display = 'block';
+	    document.getElementById('optionalInfo').style.display = 'block';
     }
 
     // Remove item
@@ -256,8 +299,17 @@ document.addEventListener('DOMContentLoaded', () => {
             updatePeopleList();
             updateAllItemAssignments();
             personNameInput.value = '';
+		updateNames();
         }
     });
+
+	setBillNameBtn.addEventListener('click', () => {
+		const billNameText = document.getElementById('billNameInput').value;
+		if (billNameText) {
+			console.log(billNameText);
+			billName.textContent = billNameText;
+		}
+	});
 
     // Handle Enter key in person name input
     personNameInput.addEventListener('keypress', (e) => {
@@ -345,6 +397,18 @@ document.addEventListener('DOMContentLoaded', () => {
             itemAssignments[itemIndex][personName] = newQuantity;
             updateItemAssignments(itemIndex);
             updateSummary();
+		    console.log(personName, item);
+
+            if (newQuantity == 0) {
+                const index = personItem.findIndex(obj => obj.name === personName && obj.item === item.item);
+                if (index !== -1) {
+                    personItem.splice(index, 1);
+                }
+                console.log(personItem);
+            }
+            else {
+                getPersonItem(personName, item.item);
+            }
         }
     };
 
@@ -356,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         items.forEach((item, index) => {
-            const price = parseFloat(item.price);
+            const price = parseFloat(item.price.replace(",", "."));
             const assignments = itemAssignments[index] || {};
             
             Object.entries(assignments).forEach(([person, quantity]) => {
@@ -374,6 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function displaySummary(summary) {
         summaryList.innerHTML = '';
         let total = 0;
+	    console.log(items);
 
         Object.entries(summary).forEach(([person, amount]) => {
             if (amount > 0) {

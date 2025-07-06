@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+
+	<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Split The Bill</title>
@@ -40,6 +41,7 @@
                     <p class="upload-hint">or</p>
                     <input type="file" id="uploadInput" accept="image/*">
                     <button id="uploadBtn" class="secondary-btn">Upload Image</button>
+		    <button id="manualInputBtn" class="secondary-btn">Enter Manually</button>
                 </div>
             </div>
 
@@ -97,9 +99,21 @@
                     </div>
                 </div>
 
+	    	<div class='summary-section' id='optionalInfo' style="display: none;">
+		   <h3>Optional Info</h3>
+		   <div class="people-input">
+			<input type="text" id="billNameInput" placeholder="Set the name of the bill">
+			<button id="setBillNameBtn" class="secondary-btn">Set Name</button>
+		   </div>
+		   <div>
+			<h3>Pagado Por</h3>
+			<div class='selection-container' id='nameSelector'></div>
+		   </div>
+		</div>
+
                 <div class="summary-section" id="summarySection" style="display: none;">
                     <div class="summary-header">
-                        <h3>Bill Summary</h3>
+                        <h3 id='billName'>Bill Summary</h3>
                         <button id="exportBtn" class="export-btn">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -109,6 +123,7 @@
                             Share
                         </button>
                     </div>
+		    <div id='payedBy'></div>
                     <div id="summaryList">
                         <!-- Summary will be populated here -->
                     </div>

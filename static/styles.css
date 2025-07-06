@@ -435,7 +435,7 @@ h2, h3 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.2rem;
 }
 
 .export-btn {
@@ -525,4 +525,40 @@ h2, h3 {
 .button-group .secondary-btn {
     flex: 1;
     margin-bottom: 0;
-} 
+}
+
+.selection-container {
+	display: flex;
+	gap: 12px;
+	flex-wrap: wrap;
+	background: white;
+	padding: 20px 30px;
+	border-radius: 16px;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
+}
+
+.name-option {
+	padding: 10px 20px;
+	border-radius: 50px;
+	border: 2px solid #ccc;
+	background-color: #fff;
+	color: #333;
+	transition: all 0.3s ease;
+}
+
+.name-option.selected {
+	background-color: #4a90e2;
+	color: white;
+	border-color: #4a90e2;
+}
+
+#payedBy {
+	border-radius: 6px;
+	border: 2px solid black;
+	padding: 5px 10px;
+	font-weight: bold;
+	display: inline-block;
+	margin-bottom: 1rem;
+	background-color: #4a90e2;
+	color: white;
+}
