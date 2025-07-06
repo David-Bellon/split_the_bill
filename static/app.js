@@ -50,8 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		else {
 			personItem.push({name, item, ...extraData});
 		}
-
-		console.log(personItem);
 	}
 
     function updateNames() {
@@ -396,19 +394,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (newQuantity >= 0 && newQuantity <= item.quantity && totalAssigned <= item.quantity) {
             itemAssignments[itemIndex][personName] = newQuantity;
             updateItemAssignments(itemIndex);
-            updateSummary();
-		    console.log(personName, item);
 
             if (newQuantity == 0) {
                 const index = personItem.findIndex(obj => obj.name === personName && obj.item === item.item);
                 if (index !== -1) {
                     personItem.splice(index, 1);
                 }
-                console.log(personItem);
             }
             else {
-                getPersonItem(personName, item.item);
+                getPersonItem(personName, item.item, {quantity: newQuantity, price: item.price});
             }
+
+            updateSummary();
         }
     };
 
@@ -438,24 +435,53 @@ document.addEventListener('DOMContentLoaded', () => {
     function displaySummary(summary) {
         summaryList.innerHTML = '';
         let total = 0;
-	    console.log(items);
 
         Object.entries(summary).forEach(([person, amount]) => {
             if (amount > 0) {
                 total += amount;
                 const summaryItem = document.createElement('div');
                 summaryItem.className = 'summary-item';
-                summaryItem.innerHTML = `
-                    <span>${person}</span>
-                    <span>$${amount.toFixed(2)}</span>
+                
+                // Get items for this person
+                const personItems = personItem.filter(item => item.name === person);
+                
+                // Create the main summary line
+                const mainLine = document.createElement('div');
+                mainLine.className = 'summary-main-line';
+                mainLine.innerHTML = `
+                    <span class="person-name">${person}</span>
+                    <span class="person-total">$${amount.toFixed(2)}</span>
                 `;
+                summaryItem.appendChild(mainLine);
+                
+                // Add item details if any
+                if (personItems.length > 0) {
+                    const itemsContainer = document.createElement('div');
+                    itemsContainer.className = 'person-items-details';
+                    
+                    personItems.forEach(item => {
+                        const itemLine = document.createElement('div');
+                        itemLine.className = 'person-item-line';
+                        const itemTotal = (parseFloat(item.price.replace(",", ".")) * item.quantity).toFixed(2);
+                        itemLine.innerHTML = `
+                            <span class="item-name">${item.item}</span>
+                            <span class="item-dots">${'.'.repeat(Math.max(1, 30 - item.item.length))}</span>
+                            <span class="item-quantity">${item.quantity} x $${item.price}</span>
+                            <span class="item-total">$${itemTotal}</span>
+                        `;
+                        itemsContainer.appendChild(itemLine);
+                    });
+                    
+                    summaryItem.appendChild(itemsContainer);
+                }
+                
                 summaryList.appendChild(summaryItem);
             }
         });
 
         if (total > 0) {
             const totalItem = document.createElement('div');
-            totalItem.className = 'summary-item';
+            totalItem.className = 'summary-item total-line';
             totalItem.innerHTML = `
                 <span><strong>Total</strong></span>
                 <span><strong>$${total.toFixed(2)}</strong></span>
