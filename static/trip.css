@@ -594,6 +594,98 @@ body.modal-open {
     .balance-amount {
         align-self: flex-end;
     }
+    
+    .detailed-balance-item {
+        padding: 0.6em 1em;
+        gap: 0.4em;
+        min-height: 50px;
+        align-items: center;
+    }
+    
+    .debt-label {
+        margin-right: 0.4em;
+        font-size: 0.9em;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .debt-amount {
+        margin-right: 0.4em;
+        font-size: 0.95em;
+        flex-shrink: 0;
+        min-width: 55px;
+        text-align: right;
+    }
+    
+    .mark-paid-btn {
+        font-size: 0.9em;
+        padding: 0.25em 0.5em;
+        min-width: 45px;
+        max-width: 65px;
+        flex-shrink: 0;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+    .detailed-balance-item {
+        padding: 0.5em 0.8em;
+        gap: 0.3em;
+        min-height: 45px;
+        flex-direction: row;
+        align-items: center;
+    }
+    
+    .debt-label {
+        font-size: 0.85em;
+        margin-right: 0.3em;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .debt-amount {
+        font-size: 0.9em;
+        margin-right: 0.3em;
+        flex-shrink: 0;
+        min-width: 50px;
+        text-align: right;
+    }
+    
+    .mark-paid-btn {
+        font-size: 0.85em;
+        padding: 0.2em 0.4em;
+        min-width: 40px;
+        max-width: 55px;
+        flex-shrink: 0;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+    .detailed-balance-item {
+        padding: 0.4em 0.6em;
+        gap: 0.25em;
+        min-height: 40px;
+    }
+    
+    .debt-label {
+        font-size: 0.8em;
+        margin-right: 0.25em;
+    }
+    
+    .debt-amount {
+        font-size: 0.85em;
+        margin-right: 0.25em;
+        min-width: 45px;
+        text-align: right;
+    }
+    
+    .mark-paid-btn {
+        font-size: 0.8em;
+        padding: 0.15em 0.3em;
+        min-width: 35px;
+        max-width: 50px;
+    }
 } 
 
 /* --- Enhanced Back to Dashboard Link --- */
@@ -875,6 +967,10 @@ body.modal-open {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: 60px;
+    max-width: 80px;
 }
 .mark-paid-btn:hover, .mark-paid-btn:focus {
     background: linear-gradient(90deg,#68d391 0%,#38a169 100%);
@@ -993,20 +1089,18 @@ body.modal-open {
     font-size: 1.08em;
     border: 1.5px solid #e2e8f0;
     gap: 1em;
+    min-height: 60px;
+    box-sizing: border-box;
+    position: relative;
 }
 .debt-label {
     display: flex;
     align-items: center;
     gap: 0.3em;
     font-size: 1em;
-}
-.debtor-name {
-    color: #3182ce;
-    font-weight: 700;
-}
-.owes-label {
-    color: #718096;
-    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    margin-right: 1em;
 }
 .creditor-name {
     color: #38a169;
@@ -1018,4 +1112,121 @@ body.modal-open {
     font-size: 1.08em;
     letter-spacing: 0.01em;
     margin-left: 0.5em;
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-right: 1em;
+    min-width: 65px;
+    text-align: right;
+}
+
+/* Payments History Styles */
+.payments-card {
+    background: linear-gradient(90deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(66,153,225,0.08);
+    padding: 1.2em 1.5em 1em 1.5em;
+    margin: 2em auto 0 auto;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.payments-header {
+    font-weight: 900;
+    font-size: 1.13em;
+    color: #2563eb;
+    margin: 0 0 0.7em 0;
+    display: flex;
+    align-items: center;
+}
+
+.payments-header svg {
+    margin-right: 0.4em;
+    vertical-align: middle;
+}
+
+.payment-line {
+    padding: 0.7em 0;
+    margin: 0.1em 0;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 1.05em;
+}
+
+.payment-line:last-child {
+    border-bottom: none;
+}
+
+.payment-text {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.payment-from {
+    color: #3182ce;
+    font-weight: 700;
+}
+
+.payment-verb {
+    color: #718096;
+    font-weight: 500;
+}
+
+.payment-to {
+    color: #38a169;
+    font-weight: 700;
+}
+
+.payment-amount {
+    color: #38a169;
+    font-weight: 700;
+}
+
+/* Mobile responsive for payments */
+@media (max-width: 768px) {
+    .payments-card {
+        padding: 1em 1.2em 0.8em 1.2em;
+        margin: 1.5em auto 0 auto;
+    }
+    
+    .payments-header {
+        font-size: 1.05em;
+        margin: 0 0 0.6em 0;
+    }
+    
+    .payment-line {
+        padding: 0.6em 0;
+        font-size: 1em;
+    }
+    
+    .payment-text {
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 480px) {
+    .payments-card {
+        padding: 0.8em 1em 0.6em 1em;
+        margin: 1.2em auto 0 auto;
+    }
+    
+    .payments-header {
+        font-size: 1em;
+        margin: 0 0 0.5em 0;
+    }
+    
+    .payment-line {
+        padding: 0.5em 0;
+        font-size: 0.95em;
+    }
+    
+    .payment-text {
+        justify-content: space-between;
+    }
+    
+    .payment-amount {
+        /* No margin needed with space-between */
+    }
 } 

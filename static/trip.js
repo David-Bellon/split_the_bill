@@ -295,6 +295,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Render the detailed 'who owes whom' breakdown in the balances section
     function renderDetailedBalances() {
         if (!currentDebtMatrix) return;
+        
+        // Ensure payments array exists before using it
+        if (!currentTrip.payments) currentTrip.payments = [];
+        
         balancesList.innerHTML = '';
 
         // Fancy header
@@ -343,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const debtItem = document.createElement('div');
                     debtItem.className = 'detailed-balance-item';
                     debtItem.innerHTML = `
-                        <span class="debt-label"><span class="debtor-name">${debtor}</span> <span class="owes-label">owes</span> <span class="creditor-name">${creditor}</span></span>
+                        <span class="debt-label"><span class="creditor-name">${creditor}</span></span>
                         <span class="debt-amount">$${amount.toFixed(2)}</span>
                         <button class='mark-paid-btn' title='Mark as Paid'>💵</button>
                     `;
@@ -373,35 +377,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // Show all payments history
         if (currentTrip.payments.length > 0) {
             const paymentsCard = document.createElement('div');
-            paymentsCard.style.background = 'linear-gradient(90deg, #f8fafc 0%, #e2e8f0 100%)';
-            paymentsCard.style.borderRadius = '16px';
-            paymentsCard.style.boxShadow = '0 2px 12px rgba(66,153,225,0.08)';
-            paymentsCard.style.padding = '1.2em 1.5em 1em 1.5em';
-            paymentsCard.style.margin = '2em auto 0 auto';
-            paymentsCard.style.maxWidth = '600px';
-            paymentsCard.style.marginLeft = 'auto';
-            paymentsCard.style.marginRight = 'auto';
+            paymentsCard.className = 'payments-card';
 
             const paymentsHeader = document.createElement('div');
-            paymentsHeader.style.fontWeight = '900';
-            paymentsHeader.style.fontSize = '1.13em';
-            paymentsHeader.style.color = '#2563eb';
-            paymentsHeader.style.margin = '0 0 0.7em 0';
-            paymentsHeader.style.display = 'flex';
-            paymentsHeader.style.alignItems = 'center';
-            paymentsHeader.innerHTML = `<svg style="vertical-align:middle;margin-right:0.4em;" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Payments history`;
+            paymentsHeader.className = 'payments-header';
+            paymentsHeader.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Payments history`;
             paymentsCard.appendChild(paymentsHeader);
 
             currentTrip.payments.slice().reverse().forEach(payment => {
                 const paymentLine = document.createElement('div');
-                paymentLine.style.display = 'flex';
-                paymentLine.style.justifyContent = 'space-between';
-                paymentLine.style.alignItems = 'center';
-                paymentLine.style.padding = '0.7em 0';
-                paymentLine.style.margin = '0.1em 0';
-                paymentLine.style.borderBottom = '1px solid #e2e8f0';
-                paymentLine.style.fontSize = '1.05em';
-                paymentLine.innerHTML = `<span><span style="color:#3182ce;font-weight:700;">${payment.from}</span> <span style="color:#718096;font-weight:500;">paid</span> <span style="color:#38a169;font-weight:700;">${payment.to}</span></span> <span style="color:#38a169;font-weight:700;">$${Number(payment.amount).toFixed(2)}</span>`;
+                paymentLine.className = 'payment-line';
+                paymentLine.innerHTML = `
+                    <span class="payment-text">
+                        <span class="payment-from">${payment.from}</span>
+                        <span class="payment-verb">paid</span>
+                        <span class="payment-to">${payment.to}</span>
+                        <span class="payment-amount">$${Number(payment.amount).toFixed(2)}</span>
+                    </span>
+                `;
                 paymentsCard.appendChild(paymentLine);
             });
             balancesList.appendChild(paymentsCard);

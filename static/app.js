@@ -680,7 +680,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         items.forEach((item, itemIndex) => {
             const assignments = itemAssignments[itemIndex] || {};
-            const itemTotal = parseFloat(item.price) * parseInt(item.quantity);
+            const itemTotal = parseFloat(item.price.replace(",", ".")) * parseInt(item.quantity);
             
             Object.entries(assignments).forEach(([person, quantity]) => {
                 if (quantity > 0) {
@@ -896,13 +896,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Process each item with its assignments
         items.forEach((item, itemIndex) => {
-            const itemTotal = parseFloat(item.price) * parseInt(item.quantity);
+            const itemTotal = parseFloat(item.price.replace(",", ".")) * parseInt(item.quantity);
             const assignments = itemAssignments[itemIndex] || {};
             
             const itemBreakdown = {
                 name: item.item,
                 quantity: parseInt(item.quantity),
-                unitPrice: parseFloat(item.price),
+                unitPrice: parseFloat(item.price.replace(",", ".")),
                 totalPrice: itemTotal,
                 assignments: {}
             };
