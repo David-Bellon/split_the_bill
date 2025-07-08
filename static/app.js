@@ -693,8 +693,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 tripInfoNote.style.display = 'inline';
                 tripInfoNote.innerHTML = `Members are managed in the <a href="/trip/${trip.id}" target="_blank">trip page</a>.`;
                 updateNames();
+                updatePeopleList();
                 updateAllItemAssignments();
-                displayResults(items);
             }
         } else {
             // No trip: unlock people input
@@ -702,8 +702,6 @@ document.addEventListener('DOMContentLoaded', () => {
             personNameInput.disabled = false;
             addPersonBtn.disabled = false;
             tripInfoNote.style.display = 'none';
-            updateAllItemAssignments();
-            displayResults(items);
         }
     });
 
