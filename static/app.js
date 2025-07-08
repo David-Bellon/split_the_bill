@@ -74,12 +74,40 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Convert File to Base64
+    // Convert File to Base64 and resize to 1080x1920
     function fileToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    // Target size
+                    const targetW = 1080;
+                    const targetH = 1920;
+                    // Calculate scale to fit image within target
+                    const scale = Math.min(targetW / img.width, targetH / img.height);
+                    const newW = Math.round(img.width * scale);
+                    const newH = Math.round(img.height * scale);
+                    // Center the image
+                    const offsetX = Math.floor((targetW - newW) / 2);
+                    const offsetY = Math.floor((targetH - newH) / 2);
+                    // Create canvas
+                    const canvas = document.createElement('canvas');
+                    canvas.width = targetW;
+                    canvas.height = targetH;
+                    const ctx = canvas.getContext('2d');
+                    // Fill background white
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, targetW, targetH);
+                    // Draw resized image centered
+                    ctx.drawImage(img, offsetX, offsetY, newW, newH);
+                    // Export as JPEG (smaller size, good for receipts)
+                    resolve(canvas.toDataURL('image/jpeg', 0.92));
+                };
+                img.onerror = (e) => reject(e);
+                img.src = reader.result;
+            };
             reader.onerror = error => reject(error);
         });
     }
@@ -693,7 +721,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 tripInfoNote.style.display = 'inline';
                 tripInfoNote.innerHTML = `Members are managed in the <a href="/trip/${trip.id}" target="_blank">trip page</a>.`;
                 updateNames();
-                updatePeopleList();
                 updateAllItemAssignments();
             }
         } else {
