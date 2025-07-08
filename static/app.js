@@ -83,8 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const img = new Image();
                 img.onload = () => {
                     // Target size
-                    const targetW = 1080;
-                    const targetH = 1920;
+                    const targetW = 748;
+                    const targetH = 748;
                     // Calculate scale to fit image within target
                     const scale = Math.min(targetW / img.width, targetH / img.height);
                     const newW = Math.round(img.width * scale);
