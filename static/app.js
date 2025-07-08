@@ -32,6 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const setBillNameBtn = document.getElementById('setBillNameBtn');
     const billName = document.getElementById('billName');
     const nameSelector = document.getElementById('nameSelector');
+    const tripSelect = document.getElementById('tripSelect');
+    const tripInfoNote = document.getElementById('tripInfoNote');
+    let selectedTripId = '';
+    let tripMembers = [];
 
 
     let people = [];
@@ -59,11 +63,11 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('name-option')
             btn.textContent = name;
             btn.addEventListener('click', () => {
-            document.querySelectorAll('.name-option').forEach(el => el.classList.remove('selected'));
-            btn.classList.add('selected');
+                document.querySelectorAll('.name-option').forEach(el => el.classList.remove('selected'));
+                btn.classList.add('selected');
 
-            nameSelected = name;
-                document.getElementById('payedBy').textContent = 'Pagado por ' + name;
+                nameSelected = name;
+                    document.getElementById('payedBy').textContent = 'Pagado por ' + name;
             });
 
             nameSelector.appendChild(btn);
@@ -463,9 +467,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         const itemLine = document.createElement('div');
                         itemLine.className = 'person-item-line';
                         const itemTotal = (parseFloat(item.price.replace(",", ".")) * item.quantity).toFixed(2);
+                        // Calculate dots based on screen size
+                        const isMobile = window.innerWidth <= 768;
+                        const maxItemLength = isMobile ? 15 : 30;
+                        const dotsLength = Math.max(1, maxItemLength - item.item.length);
+                        const dots = '.'.repeat(dotsLength);
+                        
                         itemLine.innerHTML = `
                             <span class="item-name">${item.item}</span>
-                            <span class="item-dots">${'.'.repeat(Math.max(1, 30 - item.item.length))}</span>
+                            <span class="item-dots">${dots}</span>
                             <span class="item-quantity">${item.quantity} x $${item.price}</span>
                             <span class="item-total">$${itemTotal}</span>
                         `;
@@ -491,6 +501,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             summarySection.style.display = 'none';
         }
+        // Update summary actions
+        updateSummaryActions();
     }
 
     // Loading state management
@@ -626,4 +638,295 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize the app
     cameraInput.value = ''; // Reset camera input
     uploadInput.value = ''; // Reset upload input
+
+    // Trip functionality - simplified for new Save to Trip flow
+    const addToTripBtn = document.getElementById('addToTripBtn');
+
+    // Calculate current summary for trip addition
+    function calculateCurrentSummary() {
+        const summary = {};
+        
+        people.forEach(person => {
+            summary[person] = 0;
+        });
+
+        items.forEach((item, itemIndex) => {
+            const assignments = itemAssignments[itemIndex] || {};
+            const itemTotal = parseFloat(item.price) * parseInt(item.quantity);
+            
+            Object.entries(assignments).forEach(([person, quantity]) => {
+                if (quantity > 0) {
+                    const personShare = (itemTotal * quantity) / parseInt(item.quantity);
+                    summary[person] += personShare;
+                }
+            });
+        });
+
+        return summary;
+    }
+
+    // Load trips into dropdown
+    function loadTripsDropdown() {
+        const trips = JSON.parse(localStorage.getItem('trips') || '[]');
+        tripSelect.innerHTML = '<option value="">No trip (just split the bill)</option>';
+        trips.forEach(trip => {
+            const option = document.createElement('option');
+            option.value = trip.id;
+            option.textContent = trip.name;
+            tripSelect.appendChild(option);
+        });
+    }
+    loadTripsDropdown();
+
+    tripSelect.addEventListener('change', () => {
+        selectedTripId = tripSelect.value;
+        if (selectedTripId) {
+            // Trip selected: auto-populate people and lock input
+            const trips = JSON.parse(localStorage.getItem('trips') || '[]');
+            const trip = trips.find(t => t.id === selectedTripId);
+            if (trip) {
+                people = [...trip.members];
+                tripMembers = [...trip.members];
+                updatePeopleList();
+                personNameInput.disabled = true;
+                addPersonBtn.disabled = true;
+                tripInfoNote.style.display = 'inline';
+                tripInfoNote.innerHTML = `Members are managed in the <a href="/trip/${trip.id}" target="_blank">trip page</a>.`;
+                updateNames();
+            }
+        } else {
+            // No trip: unlock people input
+            tripMembers = [];
+            personNameInput.disabled = false;
+            addPersonBtn.disabled = false;
+            tripInfoNote.style.display = 'none';
+        }
+    });
+
+    // On page load, ensure people input is enabled
+    personNameInput.disabled = false;
+    addPersonBtn.disabled = false;
+    tripInfoNote.style.display = 'none';
+
+    // When adding a person, prevent if trip is selected
+    addPersonBtn.addEventListener('click', () => {
+        if (selectedTripId) return;
+    });
+    personNameInput.addEventListener('keypress', (e) => {
+        if (selectedTripId) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // When displaying summary, show only export/share if no trip, or show 'Save to Trip' if trip is selected
+    function updateSummaryActions() {
+        const addToTripBtn = document.getElementById('addToTripBtn');
+        if (addToTripBtn) {
+            if (selectedTripId) {
+                addToTripBtn.style.display = 'inline-flex';
+                addToTripBtn.textContent = 'Save to Trip';
+                addToTripBtn.title = 'Save this bill as an expense to the selected trip';
+            } else {
+                addToTripBtn.style.display = 'none';
+            }
+        }
+    }
+
+    // Save to Trip logic
+    function saveBillToTrip() {
+        if (!selectedTripId) {
+            alert('Please select a trip first.');
+            return;
+        }
+        
+        // Validate that a "paid by" person is selected
+        if (!nameSelected) {
+            alert('Please select who paid the bill by clicking on a person in the "Pagado por" section.');
+            return;
+        }
+        
+        // Calculate total amount from current bill
+        const currentSummary = calculateCurrentSummary();
+        const totalAmount = Object.values(currentSummary).reduce((sum, amount) => sum + amount, 0);
+        
+        if (totalAmount <= 0) {
+            alert('No valid bill to add to trip');
+            return;
+        }
+        
+        // Use bill name or fallback
+        const expenseName = (billName.textContent && billName.textContent !== 'Bill Summary') ? billName.textContent : 'Group Expense';
+        
+        // Create detailed split breakdown
+        const detailedSplit = createDetailedSplit();
+        
+        // Create expense object with detailed split information
+        const expense = {
+            id: Date.now().toString(),
+            name: expenseName,
+            amount: totalAmount,
+            paidBy: nameSelected,
+            splitBetween: people,
+            detailedSplit: detailedSplit,
+            createdAt: new Date().toISOString()
+        };
+        
+        // Add expense to trip
+        const trips = JSON.parse(localStorage.getItem('trips') || '[]');
+        const tripIndex = trips.findIndex(trip => trip.id === selectedTripId);
+        
+        if (tripIndex !== -1) {
+            if (!trips[tripIndex].expenses) {
+                trips[tripIndex].expenses = [];
+            }
+            trips[tripIndex].expenses.unshift(expense);
+            localStorage.setItem('trips', JSON.stringify(trips));
+            
+            // Show success feedback instead of alert
+            showSaveSuccess();
+        } else {
+            alert('Trip not found');
+        }
+    }
+
+    // Show save success feedback
+    function showSaveSuccess() {
+        const addToTripBtn = document.getElementById('addToTripBtn');
+        if (addToTripBtn) {
+            // Add saved class for visual feedback
+            addToTripBtn.classList.add('saved');
+            
+            // Hide the button content and show saved message
+            addToTripBtn.innerHTML = '';
+            addToTripBtn.style.pointerEvents = 'none';
+
+            addToTripBtn.style.display = 'none';
+            
+            // Show success notification
+            showSuccessNotification();
+            
+            // Show a temporary success message
+            setTimeout(() => {
+                // Remove the saved class and restore button functionality
+                addToTripBtn.classList.remove('saved');
+                addToTripBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    Save to Trip
+                `;
+                addToTripBtn.style.pointerEvents = 'auto';
+            }, 2000);
+        }
+    }
+
+    // Show success notification
+    function showSuccessNotification() {
+        // Remove any existing notifications
+        const existingNotification = document.querySelector('.success-notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+
+        // Create new notification
+        const notification = document.createElement('div');
+        notification.className = 'success-notification';
+        notification.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Expense saved to trip successfully!
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Remove notification after 3 seconds
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // Create detailed split breakdown
+    function createDetailedSplit() {
+        const detailedSplit = {
+            items: [],
+            personShares: {}
+        };
+
+        // Initialize person shares
+        people.forEach(person => {
+            detailedSplit.personShares[person] = 0;
+        });
+
+        // Process each item with its assignments
+        items.forEach((item, itemIndex) => {
+            const itemTotal = parseFloat(item.price) * parseInt(item.quantity);
+            const assignments = itemAssignments[itemIndex] || {};
+            
+            const itemBreakdown = {
+                name: item.item,
+                quantity: parseInt(item.quantity),
+                unitPrice: parseFloat(item.price),
+                totalPrice: itemTotal,
+                assignments: {}
+            };
+
+            // Calculate each person's share of this item
+            Object.entries(assignments).forEach(([person, quantity]) => {
+                if (quantity > 0) {
+                    const personShare = (itemTotal * quantity) / parseInt(item.quantity);
+                    itemBreakdown.assignments[person] = {
+                        quantity: quantity,
+                        share: personShare
+                    };
+                    detailedSplit.personShares[person] += personShare;
+                }
+            });
+
+            detailedSplit.items.push(itemBreakdown);
+        });
+
+        return detailedSplit;
+    }
+
+    function resetBillSplitterUI() {
+        // Reset all bill splitter state
+        people = [];
+        items = [];
+        itemAssignments = {};
+        nameSelected = null;
+        personItem = [];
+        billName.textContent = 'Bill Summary';
+        document.getElementById('payedBy').textContent = '';
+        updatePeopleList();
+        displayResults(items);
+        summarySection.style.display = 'none';
+        tripSelect.value = '';
+        selectedTripId = '';
+        tripMembers = [];
+        personNameInput.disabled = false;
+        addPersonBtn.disabled = false;
+        tripInfoNote.style.display = 'none';
+    }
+
+    // Attach Save to Trip logic to the summary button
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.id === 'addToTripBtn' && selectedTripId) {
+            saveBillToTrip();
+        }
+    });
+
+    // Update dots when window is resized
+    window.addEventListener('resize', () => {
+        if (items.length > 0) {
+            updateSummary();
+        }
+    });
 }); 

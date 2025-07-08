@@ -10,6 +10,7 @@ from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import json
+import pandas as pd
 
 # Load environment variables
 load_dotenv()
@@ -61,9 +62,43 @@ class ReceiptResponse(BaseModel):
 class ReceiptRequest(BaseModel):
     image: str  # Base64 encoded image
 
+
+@app.post("/calculate-debt")
+async def calculate_debt(request: Request):
+    data = await request.json()
+
+    df = pd.DataFrame(index=data['members'], columns=data['members'])
+    df.fillna(0, inplace=True)
+
+    for person_debt in data['people_debt']:
+        for payed in person_debt['payed']:
+            df.loc[person_debt['paidBy'], payed['member']] += payed['amount']
+
+    debt = df.transpose() - df
+    debt[debt < 0] = 0
+
+    total_debt = {}
+    for member in data['members']:
+        debt_to_pay = debt.loc[member]
+        total_debt[member] = debt_to_pay.to_dict()
+
+    return JSONResponse(
+        status_code=200,
+        content={"debt": total_debt}
+    )
+
+
+@app.get("/expense")
+async def read_dashboard():
+    return FileResponse("static/index.html")
+
+@app.get("/trip/{trip_id}")
+async def read_trip(trip_id: str):
+    return FileResponse("static/trip.html")
+
 @app.get("/")
 async def read_root():
-    return FileResponse("static/index.html")
+    return FileResponse("static/dashboard.html")
 
 @app.post("/process-receipt", status_code=200)
 @limiter.limit("5/minute")  # Allow 5 requests per minute

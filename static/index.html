@@ -22,9 +22,14 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Split The Bill</h1>
-            <p class="subtitle">Take a photo of your receipt and we'll help you split it!</p>
+        <header class="modern-header">
+            <a href="/" class="simple-home-btn">Home</a>
+            <div class="modern-header-row">
+                <div class="modern-header-content">
+                    <h1 class="modern-title">Split <span class="modern-title-gradient">The Bill</span></h1>
+                    <p class="modern-subtitle">Take a photo of your receipt and <span class="modern-highlight">we'll help you split it!</span></p>
+                </div>
+            </div>
         </header>
 
         <main>
@@ -56,6 +61,13 @@
                 <div class="section-header">
                     <h2>Receipt Items</h2>
                     <button id="addItemBtn" class="secondary-btn">Add New Item</button>
+                    <div class="trip-select-row">
+                        <label for="tripSelect" class="trip-select-label">Attach this bill to a trip (optional)</label>
+                        <select id="tripSelect" class="form-input">
+                            <option value="">No trip (just split the bill)</option>
+                        </select>
+                        <span id="tripInfoNote" class="trip-info-note" style="display:none;"></span>
+                    </div>
                     <div class="people-section">
                         <div class="people-input">
                             <input type="text" id="personName" placeholder="Add person's name">
@@ -114,14 +126,23 @@
                 <div class="summary-section" id="summarySection" style="display: none;">
                     <div class="summary-header">
                         <h3 id='billName'>Bill Summary</h3>
-                        <button id="exportBtn" class="export-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                <polyline points="7 10 12 15 17 10"/>
-                                <line x1="12" y1="15" x2="12" y2="3"/>
-                            </svg>
-                            Share
-                        </button>
+                        <div class="summary-actions">
+                            <button id="addToTripBtn" class="secondary-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                Add to Trip
+                            </button>
+                            <button id="exportBtn" class="export-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Share
+                            </button>
+                        </div>
                     </div>
 		    <div id='payedBy'></div>
                     <div id="summaryList">
@@ -136,6 +157,9 @@
             </div>
         </main>
     </div>
+
+
+
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="/static/app.js"></script>
 </body>
