@@ -972,3 +972,9 @@ function openCamera() {
         window.Android.openCamera();
     }
 }
+
+function onImageCaptured() {
+    document.getElementById('previewImage').src = imageData;
+    document.getElementById('uploadSection').style.display = 'none';
+    document.getElementById('previewSection').style.display = 'block';
+}
