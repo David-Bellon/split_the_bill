@@ -973,7 +973,7 @@ function openCamera() {
     }
 }
 
-function onImageCaptured() {
+function onImageCaptured(imageData) {
     document.getElementById('previewImage').src = imageData;
     document.getElementById('uploadSection').style.display = 'none';
     document.getElementById('previewSection').style.display = 'block';
