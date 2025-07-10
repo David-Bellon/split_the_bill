@@ -46,6 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let nameSelected = null;
 	let personItem = [];
 
+    if (window.Android) {
+        cameraInput.style.display = 'none';
+    }
+
+    
+
 	function getPersonItem(name, item, extraData = {}) {
 		const existing = personItem.find(obj => obj.name === name && obj.item === item);
 		if (existing) {
@@ -959,3 +965,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 }); 
+
+
+function openCamera() {
+    if (window.Android && window.Android.openCamera === 'function') {
+        window.Android.openCamera();
+    }
+}
