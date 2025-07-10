@@ -50,7 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
         cameraInput.disabled = true;
     }
 
-    
+    window.onImageCaptured = function(imageData) {
+        receiptImageBase64 = imageData
+        showPreview(receiptImageBase64);
+        processImage();
+    }
 
 	function getPersonItem(name, item, extraData = {}) {
 		const existing = personItem.find(obj => obj.name === name && obj.item === item);
@@ -203,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 receiptImageBase64 = await fileToBase64(file);
                 showPreview(receiptImageBase64);
-                processImage(file);
+                processImage();
             } catch (error) {
                 console.error('Error converting image to base64:', error);
                 alert(error);
@@ -218,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 receiptImageBase64 = await fileToBase64(file);
                 showPreview(receiptImageBase64);
-                processImage(file);
+                processImage();
             } catch (error) {
                 console.error('Error converting image to base64:', error);
                 alert(error);
@@ -248,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Process image and send to backend
-    async function processImage(file) {
+    async function processImage() {
         try {
             showLoading();
             const response = await fetch('/process-receipt', {
@@ -973,8 +977,3 @@ function openCamera() {
     }
 }
 
-function onImageCaptured(imageData) {
-    document.getElementById('previewImage').src = imageData;
-    document.getElementById('uploadSection').style.display = 'none';
-    document.getElementById('previewSection').style.display = 'block';
-}
