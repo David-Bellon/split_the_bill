@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (window.Android) {
         cameraInput.style.display = 'none';
+        alert("Camera");
     }
 
     
