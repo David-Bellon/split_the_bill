@@ -50,6 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
         cameraInput.style.display = 'none';
         alert("Camera");
     }
+    else {
+        alert("NO camera")
+    }
 
     
 
