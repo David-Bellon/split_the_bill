@@ -968,7 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function openCamera() {
-    if (window.Android && window.Android.openCamera === 'function') {
+    if (window.Android) {
         window.Android.openCamera();
     }
 }
