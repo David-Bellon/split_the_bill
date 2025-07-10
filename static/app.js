@@ -47,11 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	let personItem = [];
 
     if (window.Android) {
-        cameraInput.style.display = 'none';
-        alert("Camera");
-    }
-    else {
-        alert("NO camera")
+        cameraInput.disabled = true;
     }
 
     
