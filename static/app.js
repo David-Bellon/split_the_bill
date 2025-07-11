@@ -66,6 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		}
 	}
 
+    function removePersonItem(personName, itemName) {
+        const index = personItem.findIndex(obj => obj.name === personName && obj.item === itemName);
+        if (index !== -1) {
+            personItem.splice(index, 1);
+        }
+    }
+
     function updateNames() {
         nameSelector.innerHTML = "";
         people.forEach(name => {
@@ -288,7 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Display results from the API
     function displayResults(items) {
         itemsList.innerHTML = '';
-        console.log(items);
         items.forEach((item, index) => {
             const itemElement = document.createElement('div');
             itemElement.className = 'item-card';
@@ -318,6 +324,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Remove item
     window.removeItem = function(index) {
         if (confirm('Are you sure you want to remove this item?')) {
+            Object.keys(itemAssignments[index]).forEach(person => {
+                removePersonItem(person, items[index].item)
+            })
             items.splice(index, 1);
             delete itemAssignments[index];
             // Reindex the remaining assignments
@@ -329,6 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     newAssignments[oldIndex] = itemAssignments[oldIndex];
                 }
             });
+
             itemAssignments = newAssignments;
             displayResults(items);
             updateSummary();
@@ -350,7 +360,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	setBillNameBtn.addEventListener('click', () => {
 		const billNameText = document.getElementById('billNameInput').value;
 		if (billNameText) {
-			console.log(billNameText);
 			billName.textContent = billNameText;
 		}
 	});
@@ -499,6 +508,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="person-total">$${amount.toFixed(2)}</span>
                 `;
                 summaryItem.appendChild(mainLine);
+
+                console.log(personItems)
                 
                 // Add item details if any
                 if (personItems.length > 0) {
@@ -512,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Calculate dots based on screen size
                         const isMobile = window.innerWidth <= 768;
                         const maxItemLength = isMobile ? 15 : 30;
-                        const dotsLength = Math.max(1, maxItemLength - item.item.length);
+                        const dotsLength = 9 //Math.max(1, maxItemLength - item.item.length);
                         const dots = '.'.repeat(dotsLength);
                         
                         itemLine.innerHTML = `

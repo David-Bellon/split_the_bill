@@ -1181,7 +1181,7 @@ h2, h3 {
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        max-width: 40%;
+        text-wrap: balance;
     }
     
     .item-dots {
