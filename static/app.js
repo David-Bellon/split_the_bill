@@ -168,9 +168,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     // Create a File object from the blob
                     const file = new File([blob], 'bill-summary.png', { type: 'image/png' });
-                    
+
+                    if (window.Android) {
+                        const base64 = canvas.toDataURL('image/png');
+                        Android.shareImage(base64);
+                    }
                     // Check if Web Share API is available
-                    if (navigator.share) {
+                    else if (navigator.share) {
                         await navigator.share({
                             files: [file],
                             title: 'Bill Summary',
