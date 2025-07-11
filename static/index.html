@@ -23,11 +23,13 @@
 <body>
     <div class="container">
         <header class="modern-header">
-            <a href="/" class="simple-home-btn">Home</a>
+            <a href="/" class="floating-home-btn" title="Home">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0h6"/></svg>
+            </a>
             <div class="modern-header-row">
                 <div class="modern-header-content">
                     <h1 class="modern-title">Split <span class="modern-title-gradient">The Bill</span></h1>
-                    <p class="modern-subtitle">Take a photo of your receipt and <span class="modern-highlight">we'll help you split it!</span></p>
+                    <p class="modern-subtitle">Take a photo of your receipt and <br> <span class="modern-highlight">we'll help you split it!</span></p>
                 </div>
             </div>
         </header>
@@ -41,12 +43,26 @@
                             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                             <circle cx="12" cy="13" r="4"/>
                         </svg>
-                        Take Photo
+                        <span>Take Photo</span>
                     </label>
-                    <p class="upload-hint">or</p>
+                    <div class="or-separator">
+                        <span class="or-line"></span>
+                        <span class="or-text">or</span>
+                        <span class="or-line"></span>
+                    </div>
                     <input type="file" id="uploadInput" accept="image/*">
-                    <button id="uploadBtn" class="secondary-btn">Upload Image</button>
-		    <button id="manualInputBtn" class="secondary-btn">Enter Manually</button>
+                    <button id="uploadBtn" class="secondary-btn enhanced-btn">
+                        <span class="btn-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </span>
+                        <span class="btn-text">Upload Image</span>
+                    </button>
+                    <button id="manualInputBtn" class="secondary-btn enhanced-btn">
+                        <span class="btn-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19.5 2 21l1.5-5L16.5 3.5z"/></svg>
+                        </span>
+                        <span class="btn-text">Enter Manually</span>
+                    </button>
                 </div>
             </div>
 

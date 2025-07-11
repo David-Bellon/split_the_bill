@@ -115,6 +115,8 @@ h2, h3 {
     transition: all 0.3s ease;
     width: 100%;
     text-align: center;
+    box-shadow: 0 5px 12px rgb(81, 144, 168);
+    font-weight: 800;
 }
 
 .camera-btn:hover {
@@ -988,6 +990,57 @@ h2, h3 {
     border-color: #cbd5e0;
 }
 
+/* Enhanced button with icon */
+.enhanced-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-weight: 800;
+    font-size: 1.55rem;
+    padding: 1.1rem 1.2rem;
+    border-radius: 18px;
+    box-shadow: 0 2px 8px rgb(76, 81, 83);
+    margin-bottom: 1.1rem;
+    color: #2d3748;
+    transition: box-shadow 0.2s, background 0.2s;
+}
+.enhanced-btn .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.5rem;
+}
+.enhanced-btn .btn-text {
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: 0.01em;
+}
+
+/* Or separator with lines */
+.or-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin: 1.5rem 0 1.5rem 0;
+    gap: 1.2rem;
+}
+.or-separator .or-line {
+    flex: 1;
+    height: 2px;
+    background: #e2e8f0;
+    border-radius: 2px;
+}
+.or-separator .or-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #718096;
+    padding: 0 0.7rem;
+    border-radius: 8px;
+    letter-spacing: 0.02em;
+}
+
 /* Mobile Responsive Styles - Overflow Prevention */
 @media (max-width: 768px) {
     .container {
@@ -1235,6 +1288,7 @@ h2, h3 {
     }
 }
 
+/* --- Modern App Header Styles --- */
 .modern-header {
     position: relative;
     background: linear-gradient(120deg, #4299e1 0%, #38a169 100%);
@@ -1250,7 +1304,7 @@ h2, h3 {
 .floating-home-btn {
     position: absolute;
     top: 1.2rem;
-    right: 1.5rem;
+    left: 1.2rem;
     background: #fff;
     border-radius: 50%;
     box-shadow: 0 4px 16px rgba(66,153,225,0.18);
@@ -1331,7 +1385,7 @@ h2, h3 {
         width: 44px;
         height: 44px;
         top: 0.7rem;
-        right: 0.7rem;
+        left: 0.7rem;
     }
     .floating-home-btn svg {
         width: 1.5em;
@@ -1351,6 +1405,16 @@ h2, h3 {
     .modern-subtitle {
         font-size: 1.05rem;
         margin-bottom: 0.05em;
+    }
+    .floating-home-btn {
+        width: 32px;
+        height: 32px;
+        top: 0.3rem;
+        left: 0.3rem;
+    }
+    .floating-home-btn svg {
+        width: 1em;
+        height: 1em;
     }
 }
 
