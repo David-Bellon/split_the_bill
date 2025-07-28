@@ -260,19 +260,16 @@ document.addEventListener('DOMContentLoaded', () => {
             people_debt.push(person_debt);
         });
 
-        //console.log(people_debt);
+        console.log(currentTrip.payments);
 
         fetch('/calculate-debt', {
             method: 'POST',
-            body: JSON.stringify({members: currentTrip.members, people_debt: people_debt})
+            body: JSON.stringify({members: currentTrip.members, people_debt: people_debt, payments: currentTrip.payments})
         }).then(response => response.json()).then(data => {
             // Store the debt matrix and update the detailed balances UI
             currentDebtMatrix = data.debt;
             renderDetailedBalances();
-            console.log(currentDebtMatrix);
         });
-
-        
 
         return balances;
     }
@@ -322,11 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const creditors = members.filter(creditor => {
                 if (debtor === creditor) return false;
                 let original = currentDebtMatrix[debtor][creditor] || 0;
-                const paid = currentTrip.payments
-                    .filter(p => p.from === debtor && p.to === creditor)
-                    .reduce((sum, p) => sum + p.amount, 0);
                 // Fix floating point issues by rounding to two decimals
-                const remaining = Math.round((original - paid) * 100) / 100;
+                const remaining = Math.round((original - 0) * 100) / 100;
                 return remaining > 0.009;
             });
             if (creditors.length > 0) {
@@ -339,11 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // List all creditors this debtor owes
                 creditors.forEach(creditor => {
                     let original = currentDebtMatrix[debtor][creditor] || 0;
-                    const paid = currentTrip.payments
-                        .filter(p => p.from === debtor && p.to === creditor)
-                        .reduce((sum, p) => sum + p.amount, 0);
-                    // Fix floating point issues by rounding to two decimals
-                    const amount = Math.round((original - paid) * 100) / 100;
+                    const amount = Math.round((original - 0) * 100) / 100;
                     const debtItem = document.createElement('div');
                     debtItem.className = 'detailed-balance-item';
                     debtItem.innerHTML = `
@@ -462,7 +452,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Refresh UI
             modal.remove();
             document.body.classList.remove('modal-open');
-            renderDetailedBalances();
+            //renderDetailedBalances();
+            calculateBalances();
         };
     }
 

@@ -67,20 +67,35 @@ class ReceiptRequest(BaseModel):
 async def calculate_debt(request: Request):
     data = await request.json()
 
-    df = pd.DataFrame(index=data['members'], columns=data['members'])
-    df.fillna(0, inplace=True)
+    # Initialize DataFrames with float dtype to avoid dtype warnings
+    df = pd.DataFrame(index=data['members'], columns=data['members'], dtype=float)
+    df.fillna(0.0, inplace=True)
+
+    df_payments = pd.DataFrame(index=data['members'], columns=data['members'], dtype=float)
+    df_payments.fillna(0.0, inplace=True)
 
     for person_debt in data['people_debt']:
         for payed in person_debt['payed']:
             df.loc[person_debt['paidBy'], payed['member']] += payed['amount']
 
-    debt = df.transpose() - df
+    for payment in data["payments"]:
+        payer = payment['from']
+        receiver = payment['to']
+        amount = payment['amount']
+        df_payments.loc[payer, receiver] += amount
+
+
+    real_debt = df.transpose() - df_payments
+    print(real_debt)
+    debt = real_debt - real_debt.transpose()
     debt[debt < 0] = 0
 
     total_debt = {}
     for member in data['members']:
         debt_to_pay = debt.loc[member]
         total_debt[member] = debt_to_pay.to_dict()
+
+    print(total_debt)
 
     return JSONResponse(
         status_code=200,

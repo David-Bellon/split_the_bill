@@ -103,8 +103,8 @@
 
 .trip-header {
     display: flex;
-    justify-content: flex-start;
-    align-items: flex-end;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 0.2rem;
     padding-left: 2px;
 }
@@ -116,6 +116,34 @@
     margin: 0 0 0.1em 0.1em;
     letter-spacing: 0.01em;
     flex: 1;
+}
+
+.delete-trip-btn {
+    background: none;
+    border: none;
+    color: #ff0303;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s cubic-bezier(.4,0,.2,1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.2rem;
+    margin-right: 0.2rem;
+    opacity: 0.7;
+}
+
+.delete-trip-btn:hover {
+    background: #fed7d7;
+    color: #e53e3e;
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.delete-trip-btn svg {
+    width: 16px;
+    height: 16px;
 }
 
 .trip-status {
@@ -509,6 +537,7 @@ h1 {
     color: #2b3348;
     margin-bottom: 0.2em;
     letter-spacing: 0.01em;
+    text-align: center;
 }
 
 h2 {
@@ -524,6 +553,7 @@ h2 {
     font-size: 1.08rem;
     margin-bottom: 1.5em;
     letter-spacing: 0.01em;
+    text-align: center;
 }
 
 label {
@@ -553,14 +583,37 @@ label {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+    h1 {
+        font-size: 1.8rem;
+        margin-bottom: 0.3em;
+        margin-top: 0.3em;
+        font-weight: bold;
+    }
+    
+    .subtitle {
+        font-size: 1rem;
+        margin-bottom: 1.2em;
+    }
+    
     .action-buttons {
         flex-direction: column;
     }
     
     .trip-header {
-        flex-direction: column;
+        flex-direction: row;
         align-items: flex-start;
         gap: 0.5rem;
+    }
+    
+    .delete-trip-btn {
+        padding: 0.4rem;
+        margin-top: 0.1rem;
+        margin-right: 0.1rem;
+    }
+    
+    .delete-trip-btn svg {
+        width: 14px;
+        height: 14px;
     }
     
     .trip-summary {

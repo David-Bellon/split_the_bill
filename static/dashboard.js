@@ -44,13 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function createTripCard(trip) {
         const card = document.createElement('div');
         card.className = 'trip-card';
-        card.onclick = () => openTrip(trip.id);
 
         const balance = calculateTripBalance(trip);
 
         card.innerHTML = `
             <div class="trip-header">
                 <h3 class="trip-name">${trip.name}</h3>
+                <button class="delete-trip-btn" onclick="deleteTrip('${trip.id}', event)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3,6 5,6 21,6"></polyline>
+                        <path d="M19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"></path>
+                    </svg>
+                </button>
             </div>
             <div class="trip-members">
                 ${trip.members.slice(0, 3).map(member => 
@@ -65,6 +70,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 </span>
             </div>
         `;
+
+        // Add click event for opening trip (but not when clicking delete button)
+        card.addEventListener('click', (e) => {
+            if (!e.target.closest('.delete-trip-btn')) {
+                openTrip(trip.id);
+            }
+        });
 
         return card;
     }
@@ -195,6 +207,17 @@ document.addEventListener('DOMContentLoaded', () => {
     window.removeMember = function(memberName) {
         currentMembers = currentMembers.filter(member => member !== memberName);
         updateMembersList();
+    };
+
+    // Delete trip (global function for onclick)
+    window.deleteTrip = function(tripId, event) {
+        event.stopPropagation();
+        
+        if (confirm('Are you sure you want to delete this trip? This action cannot be undone.')) {
+            trips = trips.filter(trip => trip.id !== tripId);
+            localStorage.setItem('trips', JSON.stringify(trips));
+            displayTrips();
+        }
     };
 
     // Reset create trip form
