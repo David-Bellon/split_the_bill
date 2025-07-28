@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fetch('/calculate-debt', {
             method: 'POST',
-            body: JSON.stringify({members: currentTrip.members, people_debt: people_debt, payments: currentTrip.payments})
+            body: JSON.stringify({members: currentTrip.members, people_debt: people_debt, payments: currentTrip.payments || null})
         }).then(response => response.json()).then(data => {
             // Store the debt matrix and update the detailed balances UI
             currentDebtMatrix = data.debt;

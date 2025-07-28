@@ -78,11 +78,12 @@ async def calculate_debt(request: Request):
         for payed in person_debt['payed']:
             df.loc[person_debt['paidBy'], payed['member']] += payed['amount']
 
-    for payment in data["payments"]:
-        payer = payment['from']
-        receiver = payment['to']
-        amount = payment['amount']
-        df_payments.loc[payer, receiver] += amount
+    if data["payments"] is not None:
+        for payment in data["payments"]:
+            payer = payment['from']
+            receiver = payment['to']
+            amount = payment['amount']
+            df_payments.loc[payer, receiver] += amount
 
 
     real_debt = df.transpose() - df_payments
