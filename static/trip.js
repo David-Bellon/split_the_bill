@@ -260,6 +260,16 @@ document.addEventListener('DOMContentLoaded', () => {
             people_debt.push(person_debt);
         });
 
+        // Apply payments to balances
+        if (currentTrip.payments && currentTrip.payments.length > 0) {
+            currentTrip.payments.forEach(payment => {
+                // Add the payment amount from the person who paid
+                balances[payment.from] += payment.amount;
+                // Subtract the payment amount from the person who received
+                balances[payment.to] -= payment.amount;
+            });
+        }
+
         console.log(currentTrip.payments);
 
         fetch('/calculate-debt', {

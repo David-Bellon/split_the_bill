@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="trip-summary">
                 <span>${trip.expenses ? trip.expenses.length : 0} expenses</span>
                 <span class="trip-balance ${balance >= 0 ? 'balance-positive' : 'balance-negative'}">
-                    ${balance >= 0 ? '+' : ''}$${balance.toFixed(2)}
+                    Total: $${balance.toFixed(2)}
                 </span>
             </div>
         `;
@@ -81,33 +81,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return card;
     }
 
-    // Calculate trip balance for current user (improved with detailed split)
+    // Calculate trip balance
     function calculateTripBalance(trip) {
         if (!trip.expenses) return 0;
         
-        // Assume current user is the first member
-        const currentUser = trip.members[0];
-        let userPaid = 0;
-        let userShare = 0;
+        let totalExpenses = 0;
         
         trip.expenses.forEach(expense => {
-            if (expense.paidBy === currentUser) {
-                userPaid += expense.amount;
-            }
-            
-            // Use detailed split if available, otherwise fall back to equal split
-            if (expense.detailedSplit && expense.detailedSplit.personShares) {
-                userShare += expense.detailedSplit.personShares[currentUser] || 0;
-            } else {
-                // Fallback to equal split for older expenses
-                const shareAmount = expense.amount / expense.splitBetween.length;
-                if (expense.splitBetween.includes(currentUser)) {
-                    userShare += shareAmount;
-                }
-            }
+            totalExpenses += expense.amount;
         });
         
-        return userPaid - userShare;
+        return totalExpenses;
     }
 
     // Format date
