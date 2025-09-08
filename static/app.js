@@ -511,6 +511,46 @@ document.addEventListener('DOMContentLoaded', () => {
         displaySummary(summary);
     }
 
+    // Get all items for a person (individual + shared from "All")
+    function getAllItemsForPerson(personName) {
+        const allItems = [];
+        
+        // Add individual items
+        const personItems = personItem.filter(item => item.name === personName);
+        personItems.forEach(item => {
+            allItems.push({
+                ...item,
+                isShared: false
+            });
+        });
+        
+        // Add shared items from "(All)" assignments
+        items.forEach((item, itemIndex) => {
+            const assignments = itemAssignments[itemIndex] || {};
+            const allQuantity = assignments[ALL_PERSON] || 0;
+            
+            if (allQuantity > 0) {
+                const realPeople = getRealPeople();
+                if (realPeople.length > 0) {
+                    const sharedQuantity = allQuantity / realPeople.length;
+                    const sharedPrice = parseFloat(item.price.replace(",", "."));
+                    const sharedTotal = (sharedPrice * sharedQuantity).toFixed(2);
+                    
+                    allItems.push({
+                        name: item.item,
+                        item: item.item,
+                        quantity: sharedQuantity,
+                        price: item.price,
+                        total: sharedTotal,
+                        isShared: true
+                    });
+                }
+            }
+        });
+        
+        return allItems;
+    }
+
     // Display summary
     function displaySummary(summary) {
         summaryList.innerHTML = '';
@@ -522,8 +562,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const summaryItem = document.createElement('div');
                 summaryItem.className = 'summary-item';
                 
-                // Get items for this person
-                const personItems = personItem.filter(item => item.name === person);
+                // Get all items for this person (individual + shared)
+                const allPersonItems = getAllItemsForPerson(person);
                 
                 // Create the main summary line
                 const mainLine = document.createElement('div');
@@ -534,27 +574,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 summaryItem.appendChild(mainLine);
 
-                console.log(personItems)
+                console.log(allPersonItems)
                 
                 // Add item details if any
-                if (personItems.length > 0) {
+                if (allPersonItems.length > 0) {
                     const itemsContainer = document.createElement('div');
                     itemsContainer.className = 'person-items-details';
                     
-                    personItems.forEach(item => {
+                    allPersonItems.forEach(item => {
                         const itemLine = document.createElement('div');
                         itemLine.className = 'person-item-line';
-                        const itemTotal = (parseFloat(item.price.replace(",", ".")) * item.quantity).toFixed(2);
+                        const itemTotal = item.total || (parseFloat(item.price.replace(",", ".")) * item.quantity).toFixed(2);
                         // Calculate dots based on screen size
                         const isMobile = window.innerWidth <= 768;
                         const maxItemLength = isMobile ? 15 : 30;
                         const dotsLength = 9 //Math.max(1, maxItemLength - item.item.length);
                         const dots = '.'.repeat(dotsLength);
                         
+                        // Add shared indicator for items split among all
+                        const itemName = item.isShared ? `${item.item} (shared)` : item.item;
+                        
                         itemLine.innerHTML = `
-                            <span class="item-name">${item.item}</span>
+                            <span class="item-name">${itemName}</span>
                             <span class="item-dots">${dots}</span>
-                            <span class="item-quantity">${item.quantity} x $${item.price}</span>
+                            <span class="item-quantity">${item.quantity.toFixed(2)} x $${item.price}</span>
                             <span class="item-total">$${itemTotal}</span>
                         `;
                         itemsContainer.appendChild(itemLine);
