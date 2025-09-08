@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const ALL_PERSON = '(All)';
+    const isAllPerson = (name) => name === ALL_PERSON;
+    const getRealPeople = () => people.filter(p => !isAllPerson(p));
+    const ensureAllPresent = () => {
+        if (!people.includes(ALL_PERSON)) people.unshift(ALL_PERSON);
+    };
     const cameraInput = document.getElementById('cameraInput');
     const uploadInput = document.getElementById('uploadInput');
     const uploadBtn = document.getElementById('uploadBtn');
@@ -75,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateNames() {
         nameSelector.innerHTML = "";
-        people.forEach(name => {
+        getRealPeople().forEach(name => {
             const btn = document.createElement('div');
             btn.classList.add('name-option')
             btn.textContent = name;
@@ -294,6 +300,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Display results from the API
     function displayResults(items) {
+        // Ensure special '(All)' person is present and people UI is up-to-date
+        ensureAllPresent();
+        updatePeopleList();
+        updateNames();
+        console.log(people)
         itemsList.innerHTML = '';
         items.forEach((item, index) => {
             const itemElement = document.createElement('div');
@@ -350,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const name = personNameInput.value.trim();
         if (name && !people.includes(name)) {
             people.push(name);
+            ensureAllPresent();
             updatePeopleList();
             updateAllItemAssignments();
             personNameInput.value = '';
@@ -377,16 +389,21 @@ document.addEventListener('DOMContentLoaded', () => {
         people.forEach(name => {
             const personElement = document.createElement('div');
             personElement.className = 'person-tag';
-            personElement.innerHTML = `
+            if (isAllPerson(name)) {
+                personElement.textContent = name;
+            } else {
+                personElement.innerHTML = `
                 ${name}
                 <button onclick="removePerson('${name}')">&times;</button>
             `;
+            }
             peopleList.appendChild(personElement);
         });
     }
 
     // Remove person
     window.removePerson = function(name) {
+        if (isAllPerson(name)) return;
         people = people.filter(p => p !== name);
         updatePeopleList();
         updateAllItemAssignments();
@@ -408,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const assignmentElement = document.createElement('div');
             assignmentElement.className = 'quantity-assignment';
             assignmentElement.innerHTML = `
-                <label>${name}</label>
+                <label>${isAllPerson(name) ? name + ' (everyone)' : name}</label>
                 <div class="quantity-controls">
                     <button class="quantity-btn" onclick="updateQuantity(${itemIndex}, '${name}', -1)" ${currentQuantity <= 0 ? 'disabled' : ''}>-</button>
                     <span class="quantity-display">${currentQuantity}</span>
@@ -450,14 +467,15 @@ document.addEventListener('DOMContentLoaded', () => {
             itemAssignments[itemIndex][personName] = newQuantity;
             updateItemAssignments(itemIndex);
 
-            if (newQuantity == 0) {
-                const index = personItem.findIndex(obj => obj.name === personName && obj.item === item.item);
-                if (index !== -1) {
-                    personItem.splice(index, 1);
+            if (!isAllPerson(personName)) {
+                if (newQuantity == 0) {
+                    const index = personItem.findIndex(obj => obj.name === personName && obj.item === item.item);
+                    if (index !== -1) {
+                        personItem.splice(index, 1);
+                    }
+                } else {
+                    getPersonItem(personName, item.item, {quantity: newQuantity, price: item.price});
                 }
-            }
-            else {
-                getPersonItem(personName, item.item, {quantity: newQuantity, price: item.price});
             }
 
             updateSummary();
@@ -467,9 +485,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update summary
     function updateSummary() {
         const summary = {};
-        people.forEach(person => {
-            summary[person] = 0;
-        });
+        getRealPeople().forEach(person => { summary[person] = 0; });
 
         items.forEach((item, index) => {
             const price = parseFloat(item.price.replace(",", "."));
@@ -478,7 +494,16 @@ document.addEventListener('DOMContentLoaded', () => {
             Object.entries(assignments).forEach(([person, quantity]) => {
                 if (quantity > 0) {
                     const pricePerUnit = price;
-                    summary[person] += pricePerUnit * quantity;
+                    if (isAllPerson(person)) {
+                        const real = getRealPeople();
+                        if (real.length > 0) {
+                            const totalShare = pricePerUnit * quantity;
+                            const perPersonShare = totalShare / real.length;
+                            real.forEach(p => { summary[p] += perPersonShare; });
+                        }
+                    } else {
+                        summary[person] += pricePerUnit * quantity;
+                    }
                 }
             });
         });
@@ -740,6 +765,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (trip) {
                 people = [...trip.members];
                 tripMembers = [...trip.members];
+                ensureAllPresent();
                 updatePeopleList();
                 personNameInput.disabled = true;
                 addPersonBtn.disabled = true;
@@ -915,9 +941,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         // Initialize person shares
-        people.forEach(person => {
-            detailedSplit.personShares[person] = 0;
-        });
+        getRealPeople().forEach(person => { detailedSplit.personShares[person] = 0; });
 
         // Process each item with its assignments
         items.forEach((item, itemIndex) => {
@@ -935,12 +959,26 @@ document.addEventListener('DOMContentLoaded', () => {
             // Calculate each person's share of this item
             Object.entries(assignments).forEach(([person, quantity]) => {
                 if (quantity > 0) {
-                    const personShare = (itemTotal * quantity) / parseInt(item.quantity);
-                    itemBreakdown.assignments[person] = {
-                        quantity: quantity,
-                        share: personShare
-                    };
-                    detailedSplit.personShares[person] += personShare;
+                    const personShareTotal = (itemTotal * quantity) / parseInt(item.quantity);
+                    if (isAllPerson(person)) {
+                        const real = getRealPeople();
+                        if (real.length > 0) {
+                            const perPersonShare = personShareTotal / real.length;
+                            real.forEach(p => {
+                                itemBreakdown.assignments[p] = {
+                                    quantity: quantity / real.length,
+                                    share: perPersonShare
+                                };
+                                detailedSplit.personShares[p] += perPersonShare;
+                            });
+                        }
+                    } else {
+                        itemBreakdown.assignments[person] = {
+                            quantity: quantity,
+                            share: personShareTotal
+                        };
+                        detailedSplit.personShares[person] += personShareTotal;
+                    }
                 }
             });
 
@@ -968,6 +1006,10 @@ document.addEventListener('DOMContentLoaded', () => {
         personNameInput.disabled = false;
         addPersonBtn.disabled = false;
         tripInfoNote.style.display = 'none';
+        // Ensure '(All)' is visible immediately after reset
+        ensureAllPresent();
+        updatePeopleList();
+        updateNames();
     }
 
     // Attach Save to Trip logic to the summary button
