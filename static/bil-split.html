@@ -380,7 +380,7 @@
                 const file = input.files[0];
                 
                 const imageFile = await fileToBase64(file)
-                showLoading("Analizando Recibo", "Subiendo imagen a la IA...");
+                showLoading("Analizando Recibo", "Tarda pocos segundos");
 
                 try {
                     // Real Fetch Request
@@ -422,7 +422,7 @@
             
             items.forEach(entry => {
                 if (entry && entry.item && entry.price) {
-                    const price = parseFloat(entry.price);
+                    const price = parseFloat(entry.price.replace(",", "."));
                     const qty = parseInt(entry.quantity) || 1;
                     
                     if (!isNaN(price)) {
