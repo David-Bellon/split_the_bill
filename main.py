@@ -114,7 +114,11 @@ async def read_trip(trip_id: str):
 
 @app.get("/")
 async def read_root():
-    return FileResponse("static/dashboard.html")
+    return FileResponse("static/bil-split.html")
+
+@app.get("/bill_split")
+async def read_root():
+    return FileResponse("static/bil-split.html")
 
 @app.post("/process-receipt", status_code=200)
 @limiter.limit("5/minute")  # Allow 5 requests per minute
@@ -150,7 +154,7 @@ async def process_receipt(request: Request, receipt_request: ReceiptRequest):
         # Extract the JSON response
         content = response.choices[0].message.content
         items_data = json.loads(content)
-
+        print(items_data)
         return items_data
 
     except Exception as e:
