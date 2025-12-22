@@ -419,8 +419,7 @@
             const items = data.items;
             let count = 0;
             const newItems = [];
-            const defaultAssignees = state.people.length > 0 ? state.people.map(p => p.id) : [];
-
+            
             items.forEach(entry => {
                 if (entry && entry.item && entry.price) {
                     const price = parseFloat(entry.price);
@@ -432,7 +431,7 @@
                             name: entry.item,
                             price: price,
                             qty: qty,
-                            assignedTo: [...defaultAssignees]
+                            assignedTo: [] 
                         });
                         count++;
                     }
@@ -492,10 +491,6 @@
                 qty,
                 assignedTo: [] 
             };
-
-            if (state.people.length > 0) {
-                newItem.assignedTo = state.people.map(p => p.id);
-            }
 
             state.items.push(newItem);
             
