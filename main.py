@@ -104,21 +104,10 @@ async def calculate_debt(request: Request):
     )
 
 
-@app.get("/expense")
-async def read_dashboard():
-    return FileResponse("static/index.html")
-
-@app.get("/trip/{trip_id}")
-async def read_trip(trip_id: str):
-    return FileResponse("static/trip.html")
-
 @app.get("/")
 async def read_root():
     return FileResponse("static/bil-split.html")
 
-@app.get("/bill_split")
-async def read_root():
-    return FileResponse("static/bil-split.html")
 
 @app.post("/process-receipt", status_code=200)
 @limiter.limit("5/minute")  # Allow 5 requests per minute
