@@ -403,7 +403,7 @@
 
             let usersHtml = '<span class="text-[10px] text-gray-400 italic">Nadie lo ha marcado aún</span>';
             if (isShared) {
-                usersHtml = `<span class="text-[10px] ${isMine ? 'text-primary' : 'text-indigo-500'} font-medium bg-white px-2 py-0.5 rounded border border-indigo-100 truncate max-w-full block"><i class="fa-solid fa-user-group text-[8px] mr-1"></i> ${assignedNames}</span>`;
+                usersHtml = `<div class="text-[10px] ${isMine ? 'text-primary' : 'text-indigo-500'} font-medium bg-white px-2 py-1.5 rounded border border-indigo-100 w-full break-words leading-tight"><i class="fa-solid fa-user-group text-[8px] mr-1"></i> ${assignedNames}</div>`;
             }
 
             card.innerHTML = `
@@ -418,7 +418,7 @@
                         ${formatCurrency(item.price)}
                     </div>
                 </div>
-                <div class="mt-2 pt-2 border-t ${isMine ? 'border-indigo-200' : 'border-gray-50'} flex items-center">
+                <div class="mt-2 pt-2 border-t ${isMine ? 'border-indigo-200' : 'border-gray-50'} flex items-center w-full">
                     ${usersHtml}
                 </div>
             `;
@@ -459,19 +459,19 @@
                 }`;
                 row.onclick = () => toggleItem(item.id);
 
-                let statusHtml = '<span class="text-[10px] text-gray-400 italic">Sin marcar</span>';
+                let statusHtml = '<span class="text-[10px] text-gray-400 italic text-right block w-full">Sin marcar</span>';
                 if (isShared) {
-                     statusHtml = `<span class="text-[10px] ${isMine ? 'text-primary font-bold' : 'text-indigo-500 font-medium'} truncate max-w-[140px] text-right">${assignedNames}</span>`;
+                     statusHtml = `<span class="text-[10px] ${isMine ? 'text-primary font-bold' : 'text-indigo-500 font-medium'} break-words block w-full text-right leading-tight">${assignedNames}</span>`;
                 }
 
                 row.innerHTML = `
-                    <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isMine ? 'border-primary bg-primary text-white' : 'border-gray-300 text-transparent'}">
+                    <div class="flex items-center gap-3 flex-shrink-0">
+                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isMine ? 'border-primary bg-primary text-white' : 'border-gray-300 text-transparent'}">
                             <i class="fa-solid fa-check text-[10px]"></i>
                         </div>
-                        <span class="text-sm truncate ${isMine ? 'text-primary font-bold' : 'text-gray-700'}">Unidad ${index + 1}</span>
+                        <span class="text-sm whitespace-nowrap ${isMine ? 'text-primary font-bold' : 'text-gray-700'}">Unidad ${index + 1}</span>
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
+                    <div class="flex-1 min-w-0 pl-3">
                         ${statusHtml}
                     </div>
                 `;
@@ -555,25 +555,35 @@
                 
                 let detailsHtml = '';
                 if (personItems.length > 0) {
+                    // Group similar items by name and price for a cleaner receipt
+                    const groupedItems = {};
+                    personItems.forEach(i => {
+                        const totalClaims = i.assignedTo.length;
+                        const myCount = i.assignedTo.filter(id => id === person.id).length;
+                        
+                        let share = 0;
+                        if (totalClaims <= i.qty) {
+                            share = myCount * i.price;
+                        } else {
+                            share = myCount * ((i.price * i.qty) / totalClaims);
+                        }
+                        
+                        const key = `${i.name}|${i.price}`;
+                        if (!groupedItems[key]) {
+                            groupedItems[key] = { name: i.name, share: 0, count: 0 };
+                        }
+                        groupedItems[key].share += share;
+                        groupedItems[key].count += myCount;
+                    });
+
                     detailsHtml = `
                         <div class="mt-1 pl-2 border-l-2 border-gray-100 space-y-1">
-                            ${personItems.map(i => {
-                                // 2. Calculate the UI breakdown specifically for this person
-                                const totalClaims = i.assignedTo.length;
-                                const myCount = i.assignedTo.filter(id => id === person.id).length;
-                                
-                                let share = 0;
-                                if (totalClaims <= i.qty) {
-                                    share = myCount * i.price;
-                                } else {
-                                    share = myCount * ((i.price * i.qty) / totalClaims);
-                                }
-                                
-                                const portionText = myCount > 1 ? `(x${myCount})` : `(x1)`;
+                            ${Object.values(groupedItems).map(g => {
+                                const portionText = g.count > 1 ? `(x${g.count})` : '';
                                 
                                 return `<div class="flex justify-between text-xs text-gray-500">
-                                            <span class="truncate w-3/4">${i.name} ${portionText}</span>
-                                            <span>${formatCurrency(share)}</span>
+                                            <span class="truncate w-3/4">${g.name} ${portionText}</span>
+                                            <span>${formatCurrency(g.share)}</span>
                                         </div>`
                             }).join('')}
                         </div>
