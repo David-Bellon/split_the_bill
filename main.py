@@ -1,8 +1,8 @@
-from fastapi import FastAPI, File, UploadFile, Request
+from fastapi import FastAPI, File, UploadFile, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
-from typing import List
+from typing import List, Dict, Any
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -11,6 +11,7 @@ import os
 from dotenv import load_dotenv
 import json
 import pandas as pd
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -50,6 +51,9 @@ app.add_middleware(
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Ensure the bills directory exists
+BILLS_DIR = "bills_data"
+os.makedirs(BILLS_DIR, exist_ok=True)
 
 class ReceiptItem(BaseModel):
     item: str
@@ -62,52 +66,14 @@ class ReceiptResponse(BaseModel):
 class ReceiptRequest(BaseModel):
     image: str  # Base64 encoded image
 
-
-@app.post("/calculate-debt")
-async def calculate_debt(request: Request):
-    data = await request.json()
-
-    # Initialize DataFrames with float dtype to avoid dtype warnings
-    df = pd.DataFrame(index=data['members'], columns=data['members'], dtype=float)
-    df.fillna(0.0, inplace=True)
-
-    df_payments = pd.DataFrame(index=data['members'], columns=data['members'], dtype=float)
-    df_payments.fillna(0.0, inplace=True)
-
-    for person_debt in data['people_debt']:
-        for payed in person_debt['payed']:
-            df.loc[person_debt['paidBy'], payed['member']] += payed['amount']
-
-    if data["payments"] is not None:
-        for payment in data["payments"]:
-            payer = payment['from']
-            receiver = payment['to']
-            amount = payment['amount']
-            df_payments.loc[payer, receiver] += amount
-
-
-    real_debt = df.transpose() - df_payments
-    print(real_debt)
-    debt = real_debt - real_debt.transpose()
-    debt[debt < 0] = 0
-
-    total_debt = {}
-    for member in data['members']:
-        debt_to_pay = debt.loc[member]
-        total_debt[member] = debt_to_pay.to_dict()
-
-    print(total_debt)
-
-    return JSONResponse(
-        status_code=200,
-        content={"debt": total_debt}
-    )
-
-
 @app.get("/")
 async def read_root():
     return FileResponse("static/bil-split.html")
 
+@app.get("/shared_bill/{bill_id}")
+async def read_shared_bill():
+    # Make sure the path matches where you saved the file
+    return FileResponse("static/shared_bill.html")
 
 @app.post("/process-receipt", status_code=200)
 @limiter.limit("5/minute")  # Allow 5 requests per minute
@@ -115,7 +81,7 @@ async def process_receipt(request: Request, receipt_request: ReceiptRequest):
     try:
         # Call OpenAI API with the image
         response = client.beta.chat.completions.parse(
-            model="gpt-4.1-mini",
+            model="gpt-4o-mini", # Make sure to use 'gpt-4o-mini' instead of 'gpt-4.1-mini'
             messages=[
                 {
                     "role": "system",
@@ -152,7 +118,44 @@ async def process_receipt(request: Request, receipt_request: ReceiptRequest):
             status_code=500,
             content={"detail": f"Error processing receipt: {str(e)}"}
         )
+
+# --- Collaborative Link Endpoints ---
+
+@app.post("/api/bills/create")
+async def create_bill(bill_state: Dict[str, Any]):
+    """Creates a new bill session and returns a UUID."""
+    bill_id = str(uuid.uuid4())
+    filepath = os.path.join(BILLS_DIR, f"{bill_id}.json")
     
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(bill_state, f, ensure_ascii=False)
+        
+    return {"uuid": bill_id}
+
+@app.get("/api/bills/{bill_id}")
+async def get_bill(bill_id: str):
+    """Retrieves an existing bill session by UUID."""
+    filepath = os.path.join(BILLS_DIR, f"{bill_id}.json")
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Bill not found")
+        
+    with open(filepath, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+@app.post("/api/bills/{bill_id}/update")
+async def update_bill(bill_id: str, bill_state: Dict[str, Any]):
+    """Updates an existing bill session with new user selections."""
+    filepath = os.path.join(BILLS_DIR, f"{bill_id}.json")
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Bill not found")
+        
+    # Write the updated state back to the JSON file
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(bill_state, f, ensure_ascii=False)
+        
+    return {"status": "success"}
+
+# --- Prompts ---
 
 def get_system_prompt():
     return """
@@ -184,4 +187,4 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=9292) 
+    uvicorn.run(app, host="0.0.0.0", port=9292)

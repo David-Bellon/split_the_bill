@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splitio - Tu Selección</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { primary: '#4F46E5', secondary: '#10B981' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        .animate-fade { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .receipt-tear {
+            background-image: radial-gradient(circle at center, transparent 4px, #ffffff 5px);
+            background-size: 16px 16px;
+            background-position: bottom;
+            background-repeat: repeat-x;
+            height: 12px;
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            right: 0;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen pb-10">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4 py-4 text-center">
+            <h1 class="text-lg font-bold text-gray-900 flex items-center justify-center gap-2" id="billTitle">
+                <i class="fa-solid fa-spinner fa-spin text-primary"></i> Cargando cuenta...
+            </h1>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-6">
+
+        <!-- Initial Loader -->
+        <div id="loadingState" class="py-20 text-center text-gray-400">
+            <i class="fa-solid fa-receipt text-5xl mb-4 opacity-20"></i>
+            <p>Buscando cuenta en el servidor...</p>
+        </div>
+
+        <!-- Step 1: Who are you? -->
+        <section id="whoAmISection" class="hidden animate-fade bg-white p-5 rounded-2xl shadow-sm">
+            <h2 class="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-4 text-center">
+                ¿Quién eres?
+            </h2>
+            <div class="grid grid-cols-2 gap-3" id="peopleGrid">
+                <!-- People generated here -->
+            </div>
+        </section>
+
+        <!-- Step 2: What did you eat? -->
+        <section id="itemsSection" class="hidden animate-fade">
+            <div class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-4 text-center">
+                <p class="text-sm font-medium text-indigo-900">Hola, <span id="currentUserName" class="font-bold text-primary"></span> 👋</p>
+                <p class="text-xs text-indigo-600 mt-1">Toca las unidades de los artículos que hayas consumido. Si seleccionas un artículo que ya tiene a otra persona, dividiréis el coste.</p>
+                <button onclick="changeUser()" class="text-[10px] text-indigo-400 hover:text-indigo-800 underline mt-2">No soy yo, cambiar usuario</button>
+            </div>
+
+            <div class="flex justify-between items-center px-2 mb-3">
+                <h3 class="text-sm uppercase tracking-wide text-gray-500 font-semibold">Artículos</h3>
+                <span id="syncStatus" class="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded-full opacity-0 transition-opacity"><i class="fa-solid fa-cloud-arrow-up"></i> Guardado</span>
+            </div>
+
+            <div id="collabItemsList" class="space-y-3">
+                <!-- Items generated here -->
+            </div>
+        </section>
+
+        <!-- Step 3: Receipt Summary -->
+        <section id="receiptSection" class="hidden animate-fade mt-8">
+            <h3 class="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-3 px-2">
+                Resumen de la Cuenta
+            </h3>
+            
+            <div class="bg-white p-6 shadow-lg relative mb-4 rounded-t-lg min-h-[200px]" id="receiptCard">
+                <div class="text-center mb-6 border-b border-dashed border-gray-300 pb-4">
+                    <h3 class="font-mono text-xl font-bold tracking-tighter text-gray-800 uppercase" id="receiptBillName">CUENTA TOTAL</h3>
+                    <p class="text-gray-400 text-xs mt-1" id="receiptDate">Cargando fecha...</p>
+                    <div id="payerBadge" class="hidden mt-2 inline-block bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
+                        Pagado por <span id="payerBadgeName"></span>
+                    </div>
+                </div>
+
+                <div id="receiptContent" class="space-y-6">
+                    <!-- Calculated split goes here -->
+                </div>
+
+                <!-- Settlement Section -->
+                <div id="settlementSection" class="hidden mt-6 pt-4 border-t border-gray-100">
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Ajuste de Cuentas</h4>
+                    <div id="settlementList" class="space-y-1 text-sm font-mono text-gray-600"></div>
+                </div>
+
+                <div class="mt-8 pt-4 border-t-2 border-gray-800 flex justify-between items-end">
+                    <span class="font-mono text-sm font-bold">TOTAL FINAL</span>
+                    <span class="font-mono text-2xl font-bold text-gray-900" id="grandTotalDisplay">$0.00</span>
+                </div>
+                
+                <div class="receipt-tear"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Extract UUID from the URL path (e.g. /shared_bill/1234abcd)
+        const pathParts = window.location.pathname.split('/');
+        // Get the last segment of the URL (ignoring trailing slashes if any)
+        const billId = pathParts[pathParts.length - 1] || pathParts[pathParts.length - 2];
+
+        let billState = null; 
+        let currentUser = null;
+
+        const els = {
+            billTitle: document.getElementById('billTitle'),
+            loadingState: document.getElementById('loadingState'),
+            whoAmISection: document.getElementById('whoAmISection'),
+            peopleGrid: document.getElementById('peopleGrid'),
+            itemsSection: document.getElementById('itemsSection'),
+            currentUserName: document.getElementById('currentUserName'),
+            collabItemsList: document.getElementById('collabItemsList'),
+            syncStatus: document.getElementById('syncStatus'),
+            // Receipt Elements
+            receiptSection: document.getElementById('receiptSection'),
+            receiptContent: document.getElementById('receiptContent'),
+            receiptBillName: document.getElementById('receiptBillName'),
+            receiptDate: document.getElementById('receiptDate'),
+            grandTotalDisplay: document.getElementById('grandTotalDisplay'),
+            payerBadge: document.getElementById('payerBadge'),
+            payerBadgeName: document.getElementById('payerBadgeName'),
+            settlementSection: document.getElementById('settlementSection'),
+            settlementList: document.getElementById('settlementList')
+        };
+
+        // ==========================================
+        // BACKEND LOGIC
+        // ==========================================
+
+        async function fetchBillData() {
+            if (!billId || billId === 'shared_bill') {
+                els.billTitle.innerHTML = "Error";
+                els.loadingState.innerHTML = "Enlace inválido o sin ID.";
+                return;
+            }
+
+            try {
+                // Fetch the JSON from the FastAPI backend
+                const response = await fetch(`/api/bills/${billId}`);
+                
+                if (!response.ok) {
+                    throw new Error('Bill not found on server');
+                }
+                
+                billState = await response.json();
+                
+                // Normalizamos los items para desglosarlos de forma equitativa
+                normalizeBillItems();
+                
+                initializeView();
+            } catch (error) {
+                els.loadingState.innerHTML = "Error al cargar la cuenta. Es posible que el enlace haya expirado.";
+                console.error(error);
+            }
+        }
+
+        async function syncToBackend() {
+            // Show loading status
+            els.syncStatus.classList.remove('opacity-0');
+            els.syncStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+            els.syncStatus.className = "text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-full";
+            
+            try {
+                // Send updated state to the FastAPI backend
+                const response = await fetch(`/api/bills/${billId}/update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(billState)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to save to server');
+                }
+
+                // Show success status
+                els.syncStatus.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Guardado';
+                els.syncStatus.className = "text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded-full";
+                
+                // Fade out the badge after 2 seconds
+                setTimeout(() => {
+                    els.syncStatus.classList.add('opacity-0');
+                }, 2000);
+                
+            } catch (error) {
+                // Show error status
+                els.syncStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error';
+                els.syncStatus.className = "text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded-full";
+            }
+        }
+
+        // ==========================================
+        // DATA NORMALIZATION (SMART AUTO-SPLIT)
+        // ==========================================
+        
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+
+        function normalizeBillItems() {
+            let hasChanges = false;
+            const expandedItems = [];
+            
+            billState.items.forEach(item => {
+                // Si el item viene con cantidad > 1 desde el origen, lo dividimos
+                // en unidades individuales para permitir asignaciones precisas.
+                if (item.qty > 1) {
+                    hasChanges = true;
+                    
+                    // Creamos el array de las unidades individuales
+                    const units = Array.from({ length: item.qty }, (_, i) => ({
+                        id: item.id + '_' + i,
+                        name: item.name,
+                        price: item.price,
+                        qty: 1,
+                        assignedTo: []
+                    }));
+
+                    const assignCount = item.assignedTo.length;
+                    
+                    if (assignCount > 0) {
+                        // DISTRIBUCIÓN INTELIGENTE:
+                        if (item.qty % assignCount === 0) {
+                            // Caso A: Hay más unidades exactas por persona (Ej: 4 aguas, 2 personas -> 2 c/u)
+                            const itemsPerUser = item.qty / assignCount;
+                            let unitIdx = 0;
+                            item.assignedTo.forEach(uid => {
+                                for (let i = 0; i < itemsPerUser; i++) {
+                                    units[unitIdx++].assignedTo.push(uid);
+                                }
+                            });
+                        } else if (assignCount % item.qty === 0) {
+                            // Caso B: Hay más personas exactas por unidad (Ej: 2 aguas, 4 personas -> 2 personas x agua)
+                            const usersPerItem = assignCount / item.qty;
+                            let userIdx = 0;
+                            for (let i = 0; i < item.qty; i++) {
+                                for (let j = 0; j < usersPerItem; j++) {
+                                    units[i].assignedTo.push(item.assignedTo[userIdx++]);
+                                }
+                            }
+                        } else {
+                            // Caso C: No es simétrico (Ej: 3 unidades, 2 personas). 
+                            // Para mantener la matemática perfecta en el backend, asignamos a todos en todo.
+                            units.forEach(u => u.assignedTo = [...item.assignedTo]);
+                        }
+                    }
+                    
+                    expandedItems.push(...units);
+                } else {
+                    // Mantenemos items singulares tal cual
+                    expandedItems.push(item);
+                }
+            });
+            
+            if (hasChanges) {
+                billState.items = expandedItems;
+                syncToBackend(); // Guardamos el estado desglosado en el servidor de forma silenciosa
+            }
+        }
+
+        // ==========================================
+        // UI LOGIC
+        // ==========================================
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(num);
+        }
+
+        function initializeView() {
+            els.loadingState.style.display = 'none';
+            els.billTitle.innerHTML = `<i class="fa-solid fa-file-invoice-dollar text-primary"></i> ${billState.billName || 'Cuenta'}`;
+            
+            // Set date
+            const dateObj = billState.date ? new Date(billState.date) : new Date();
+            els.receiptDate.textContent = dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric'});
+
+            // Show the receipt right away so they can see the overall bill
+            els.receiptSection.classList.remove('hidden');
+            renderReceipt();
+
+            // Check if user is already saved in localStorage for this specific bill
+            const savedUserId = localStorage.getItem(`splitio_user_${billId}`);
+            if (savedUserId && billState.people.find(p => p.id === savedUserId)) {
+                selectUser(savedUserId);
+            } else {
+                renderPeopleSelection();
+            }
+        }
+
+        function renderPeopleSelection() {
+            els.whoAmISection.classList.remove('hidden');
+            els.itemsSection.classList.add('hidden');
+            els.peopleGrid.innerHTML = '';
+
+            billState.people.forEach(person => {
+                const btn = document.createElement('button');
+                btn.className = 'bg-white border-2 border-gray-200 hover:border-primary hover:bg-indigo-50 text-gray-700 font-bold py-4 rounded-xl transition-all shadow-sm active:scale-95 text-center';
+                btn.textContent = person.name;
+                btn.onclick = () => selectUser(person.id);
+                els.peopleGrid.appendChild(btn);
+            });
+        }
+
+        function selectUser(personId) {
+            currentUser = billState.people.find(p => p.id === personId);
+            localStorage.setItem(`splitio_user_${billId}`, currentUser.id); // Remember user
+            
+            els.whoAmISection.classList.add('hidden');
+            els.itemsSection.classList.remove('hidden');
+            els.currentUserName.textContent = currentUser.name;
+            
+            renderItems();
+        }
+
+        function changeUser() {
+            localStorage.removeItem(`splitio_user_${billId}`);
+            currentUser = null;
+            renderPeopleSelection();
+        }
+
+        function toggleItem(itemId) {
+            const item = billState.items.find(i => i.id === itemId);
+            if (!item) return;
+
+            // Add or remove current user locally
+            if (item.assignedTo.includes(currentUser.id)) {
+                item.assignedTo = item.assignedTo.filter(id => id !== currentUser.id);
+            } else {
+                item.assignedTo.push(currentUser.id);
+            }
+            
+            renderItems();
+            renderReceipt();
+            syncToBackend(); // Auto-save on every click to backend
+        }
+
+        function renderItems() {
+            els.collabItemsList.innerHTML = '';
+
+            const groupedData = [];
+            const processedIds = new Set();
+            
+            // Agrupamos visualmente items con el mismo nombre y precio
+            billState.items.forEach(item => {
+                if (processedIds.has(item.id)) return;
+                const key = `${item.name.toLowerCase().trim()}|${item.price}`;
+                const groupItems = billState.items.filter(i => `${i.name.toLowerCase().trim()}|${i.price}` === key);
+                
+                if (groupItems.length > 1) {
+                    groupedData.push({ type: 'group', key: key, items: groupItems });
+                    groupItems.forEach(i => processedIds.add(i.id));
+                } else {
+                    groupedData.push({ type: 'single', item: item });
+                    processedIds.add(item.id);
+                }
+            });
+
+            groupedData.forEach(groupObj => {
+                if (groupObj.type === 'single') renderCollabSingleItem(groupObj.item);
+                else renderCollabGroupItems(groupObj.items);
+            });
+        }
+
+        function renderCollabSingleItem(item) {
+            const isMine = item.assignedTo.includes(currentUser.id);
+            const isShared = item.assignedTo.length > 0;
+            
+            const counts = {};
+            item.assignedTo.forEach(id => counts[id] = (counts[id] || 0) + 1);
+            const assignedNames = Object.entries(counts).map(([id, count]) => {
+                const name = billState.people.find(p => p.id === id)?.name || '???';
+                return count > 1 ? `${name} (x${count})` : name;
+            }).join(', ');
+
+            const card = document.createElement('div');
+            card.className = `cursor-pointer transition-all duration-200 rounded-xl p-4 border-2 shadow-sm relative overflow-hidden active:scale-[0.98] ${
+                isMine ? 'bg-indigo-50 border-primary ring-2 ring-primary ring-opacity-20' : 'bg-white border-gray-100 hover:border-gray-200'
+            }`;
+            card.onclick = () => toggleItem(item.id);
+
+            let usersHtml = '<span class="text-[10px] text-gray-400 italic">Nadie lo ha marcado aún</span>';
+            if (isShared) {
+                usersHtml = `<span class="text-[10px] ${isMine ? 'text-primary' : 'text-indigo-500'} font-medium bg-white px-2 py-0.5 rounded border border-indigo-100 truncate max-w-full block"><i class="fa-solid fa-user-group text-[8px] mr-1"></i> ${assignedNames}</span>`;
+            }
+
+            card.innerHTML = `
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${isMine ? 'border-primary bg-primary text-white' : 'border-gray-300 text-transparent'}">
+                        <i class="fa-solid fa-check text-xs"></i>
+                    </div>
+                    <div class="flex-1 pr-2 min-w-0">
+                        <h4 class="font-bold ${isMine ? 'text-primary' : 'text-gray-800'} leading-tight truncate">${item.name}</h4>
+                    </div>
+                    <div class="font-mono font-bold ${isMine ? 'text-primary' : 'text-gray-900'} text-right">
+                        ${formatCurrency(item.price)}
+                    </div>
+                </div>
+                <div class="mt-2 pt-2 border-t ${isMine ? 'border-indigo-200' : 'border-gray-50'} flex items-center">
+                    ${usersHtml}
+                </div>
+            `;
+            els.collabItemsList.appendChild(card);
+        }
+
+        function renderCollabGroupItems(items) {
+            const firstItem = items[0];
+            
+            const container = document.createElement('div');
+            container.className = 'bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-3';
+            
+            container.innerHTML = `
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                    <span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full">x${items.length}</span>
+                    <h3 class="font-bold text-gray-800 text-sm truncate">${firstItem.name}</h3>
+                    <span class="ml-auto text-xs font-mono text-gray-500 whitespace-nowrap">${formatCurrency(firstItem.price)} /u</span>
+                </div>
+            `;
+            
+            const list = document.createElement('div');
+            list.className = 'divide-y divide-gray-100';
+            
+            items.forEach((item, index) => {
+                const isMine = item.assignedTo.includes(currentUser.id);
+                const isShared = item.assignedTo.length > 0;
+                
+                const counts = {};
+                item.assignedTo.forEach(id => counts[id] = (counts[id] || 0) + 1);
+                const assignedNames = Object.entries(counts).map(([id, count]) => {
+                    const name = billState.people.find(p => p.id === id)?.name || '???';
+                    return count > 1 ? `${name} (x${count})` : name;
+                }).join(', ');
+
+                const row = document.createElement('div');
+                row.className = `p-3 cursor-pointer transition-all duration-200 flex items-center justify-between gap-2 ${
+                    isMine ? 'bg-indigo-50/50' : 'hover:bg-gray-50 active:bg-gray-100'
+                }`;
+                row.onclick = () => toggleItem(item.id);
+
+                let statusHtml = '<span class="text-[10px] text-gray-400 italic">Sin marcar</span>';
+                if (isShared) {
+                     statusHtml = `<span class="text-[10px] ${isMine ? 'text-primary font-bold' : 'text-indigo-500 font-medium'} truncate max-w-[140px] text-right">${assignedNames}</span>`;
+                }
+
+                row.innerHTML = `
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${isMine ? 'border-primary bg-primary text-white' : 'border-gray-300 text-transparent'}">
+                            <i class="fa-solid fa-check text-[10px]"></i>
+                        </div>
+                        <span class="text-sm truncate ${isMine ? 'text-primary font-bold' : 'text-gray-700'}">Unidad ${index + 1}</span>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        ${statusHtml}
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+            
+            container.appendChild(list);
+            els.collabItemsList.appendChild(container);
+        }
+
+        function renderReceipt() {
+            if (!billState) return;
+
+            const personTotals = {}; 
+            let grandTotal = 0;
+            let unclaimedTotal = 0;
+
+            billState.people.forEach(p => personTotals[p.id] = 0);
+
+            // 1. Calculate the new proportional split
+            billState.items.forEach(item => {
+                const totalCost = item.price * item.qty;
+                grandTotal += totalCost;
+                
+                const totalClaims = item.assignedTo.length;
+
+                if (totalClaims === 0) {
+                    unclaimedTotal += totalCost;
+                } else if (totalClaims <= item.qty) {
+                    // Each claim represents 1 full unit price
+                    const costPerClaim = item.price;
+                    item.assignedTo.forEach(pid => { 
+                        if (personTotals[pid] !== undefined) {
+                            personTotals[pid] += costPerClaim;
+                        }
+                    });
+                    // Anything left over goes to unclaimed
+                    unclaimedTotal += (item.qty - totalClaims) * item.price;
+                } else {
+                    // Over-claimed: People are sharing units, divide total cost evenly across claims
+                    const costPerClaim = totalCost / totalClaims;
+                    item.assignedTo.forEach(pid => { 
+                        if (personTotals[pid] !== undefined) {
+                            personTotals[pid] += costPerClaim;
+                        }
+                    });
+                }
+            });
+
+            // Set Header Details
+            els.receiptBillName.textContent = billState.billName || 'CUENTA TOTAL';
+            els.grandTotalDisplay.textContent = formatCurrency(grandTotal);
+
+            // Update Payer Badge
+            const payer = billState.people.find(p => p.id === billState.payerId);
+            if (payer) {
+                els.payerBadge.classList.remove('hidden');
+                els.payerBadge.classList.add('inline-block');
+                els.payerBadgeName.textContent = payer.name;
+            } else {
+                els.payerBadge.classList.add('hidden');
+                els.payerBadge.classList.remove('inline-block');
+            }
+
+            els.receiptContent.innerHTML = '';
+            
+            if (billState.people.length === 0 && billState.items.length === 0) {
+                els.receiptContent.innerHTML = `<div class="text-center text-gray-400 italic text-sm py-4">No hay datos de la cuenta.</div>`;
+                els.settlementSection.classList.add('hidden');
+                return;
+            }
+
+            // Breakdown Per Person
+            billState.people.forEach(person => {
+                const amount = personTotals[person.id];
+                // Only find items where this person is assigned
+                const personItems = billState.items.filter(i => i.assignedTo.includes(person.id));
+                
+                const div = document.createElement('div');
+                div.className = 'border-b border-gray-100 pb-3 last:border-0';
+                
+                let detailsHtml = '';
+                if (personItems.length > 0) {
+                    detailsHtml = `
+                        <div class="mt-1 pl-2 border-l-2 border-gray-100 space-y-1">
+                            ${personItems.map(i => {
+                                // 2. Calculate the UI breakdown specifically for this person
+                                const totalClaims = i.assignedTo.length;
+                                const myCount = i.assignedTo.filter(id => id === person.id).length;
+                                
+                                let share = 0;
+                                if (totalClaims <= i.qty) {
+                                    share = myCount * i.price;
+                                } else {
+                                    share = myCount * ((i.price * i.qty) / totalClaims);
+                                }
+                                
+                                const portionText = myCount > 1 ? `(x${myCount})` : `(x1)`;
+                                
+                                return `<div class="flex justify-between text-xs text-gray-500">
+                                            <span class="truncate w-3/4">${i.name} ${portionText}</span>
+                                            <span>${formatCurrency(share)}</span>
+                                        </div>`
+                            }).join('')}
+                        </div>
+                    `;
+                }
+
+                div.innerHTML = `
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="font-bold text-gray-800">${person.name}</span>
+                        <span class="font-mono font-bold text-lg ${amount > 0 ? 'text-primary' : 'text-gray-400'}">${formatCurrency(amount)}</span>
+                    </div>
+                    ${detailsHtml}
+                `;
+                els.receiptContent.appendChild(div);
+            });
+
+            // Unclaimed warning
+            if (unclaimedTotal > 0.01) {
+                const div = document.createElement('div');
+                div.className = 'mt-4 bg-orange-50 p-3 rounded-lg border border-orange-100';
+                div.innerHTML = `
+                    <div class="flex justify-between items-center text-orange-700 font-bold text-sm">
+                        <span><i class="fa-solid fa-circle-exclamation mr-1"></i> Artículos Sin Asignar</span>
+                        <span>${formatCurrency(unclaimedTotal)}</span>
+                    </div>
+                `;
+                els.receiptContent.appendChild(div);
+            }
+
+            // Settlement Logic (If Payer Selected)
+            if (payer) {
+                els.settlementSection.classList.remove('hidden');
+                els.settlementList.innerHTML = '';
+                
+                let hasDebts = false;
+                billState.people.forEach(person => {
+                    if (person.id === payer.id) return; // Skip the payer
+                    const amountOwed = personTotals[person.id];
+                    if (amountOwed > 0) {
+                        hasDebts = true;
+                        const row = document.createElement('div');
+                        row.innerHTML = `<span class="font-bold text-gray-800">${person.name}</span> debe a ${payer.name} <span class="font-bold text-primary">${formatCurrency(amountOwed)}</span>`;
+                        els.settlementList.appendChild(row);
+                    }
+                });
+                
+                // If only one person and they paid everything, or everyone owes 0
+                if (!hasDebts) {
+                    els.settlementList.innerHTML = `<div class="text-xs text-gray-400 italic">No hay deudas que saldar.</div>`;
+                }
+            } else {
+                els.settlementSection.classList.add('hidden');
+            }
+        }
+
+        // Initialize App
+        fetchBillData();
+    </script>
+</body>
+</html>

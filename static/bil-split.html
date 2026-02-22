@@ -185,6 +185,26 @@
                 </div>
             </section>
 
+            <!-- Collaborative Link Banner -->
+            <div class="bg-blue-50 border border-blue-100 rounded-2xl p-5 flex flex-col items-center justify-center text-center list-enter shadow-sm">
+                <div class="bg-white p-3 rounded-full shadow-sm text-blue-500 mb-3">
+                    <i class="fa-solid fa-users text-xl"></i>
+                </div>
+                <h3 class="text-sm font-bold text-blue-900 mb-1">¿Es una cuenta muy grande?</h3>
+                <p class="text-xs text-blue-700 mb-4 px-2">Genera un enlace y compártelo para que cada persona marque lo que ha consumido desde su móvil.</p>
+                <button id="collabMainBtn" onclick="createCollabLink()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-3 px-4 rounded-xl transition-all shadow-md w-full flex items-center justify-center gap-2 active:scale-95">
+                    <i id="collabBtnIcon" class="fa-solid fa-link"></i> <span id="collabBtnText">Crear Enlace Colaborativo</span>
+                </button>
+                
+                <!-- Contenedor del enlace generado -->
+                <div id="collabLinkContainer" class="hidden w-full mt-4 bg-white p-2 rounded-xl border border-blue-200 flex items-center gap-2 transition-all">
+                    <input type="text" id="collabLinkInput" readonly class="flex-1 bg-transparent text-xs text-gray-600 outline-none px-2 truncate select-all">
+                    <button onclick="copyCollabLink()" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm active:scale-95" title="Copiar enlace">
+                        <i class="fa-solid fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+
             <!-- Step 3: Summary -->
             <section class="list-enter">
                 <div class="flex justify-between items-center mb-3 px-2">
@@ -290,7 +310,9 @@
             payerId: '',
             people: [], 
             items: [],
-            saved: false // Track if current state is saved
+            saved: false, // Track if current state is saved
+            collabId: null, // Track collaborative session UUID
+            historyId: null // Track which history item this corresponds to
         };
         
         // History Array
@@ -352,7 +374,14 @@
             // Global
             toast: document.getElementById('toast'),
             loadingOverlay: document.getElementById('loadingOverlay'),
-            loadingTitle: document.getElementById('loadingTitle')
+            loadingTitle: document.getElementById('loadingTitle'),
+            
+            // Collab Link
+            collabMainBtn: document.getElementById('collabMainBtn'),
+            collabBtnIcon: document.getElementById('collabBtnIcon'),
+            collabBtnText: document.getElementById('collabBtnText'),
+            collabLinkContainer: document.getElementById('collabLinkContainer'),
+            collabLinkInput: document.getElementById('collabLinkInput')
         };
 
         // Initialize Dates & Inputs
@@ -405,7 +434,7 @@
 
         function resetApp() {
             if(confirm("¿Empezar una nueva cuenta? Esto borrará todos los datos no guardados.")) {
-                state = { billName: '', payerId: '', people: [], items: [], saved: false };
+                state = { billName: '', payerId: '', people: [], items: [], saved: false, collabId: null, historyId: null };
                 els.billNameInput.value = '';
                 saveState();
             }
@@ -446,17 +475,143 @@
             saveState();
         }
 
+        // --- Collaborative Link Logic ---
+        async function createCollabLink() {
+            if (state.items.length === 0 || state.people.length === 0) {
+                alert("Añade al menos una persona y un artículo primero.");
+                return;
+            }
+
+            showLoading("Procesando enlace...");
+            
+            try {
+                if (state.collabId) {
+                    // 1. If link exists, fetch current server state first to preserve what friends selected
+                    const getResponse = await fetch(`/api/bills/${state.collabId}`);
+                    if (getResponse.ok) {
+                        const serverState = await getResponse.json();
+                        // Merge assignedTo arrays from the server into our local items
+                        let hasChanges = false;
+                        state.items.forEach(localItem => {
+                            const serverItem = serverState.items.find(i => i.id === localItem.id);
+                            if (serverItem && JSON.stringify(localItem.assignedTo) !== JSON.stringify(serverItem.assignedTo)) {
+                                localItem.assignedTo = serverItem.assignedTo;
+                                hasChanges = true;
+                            }
+                        });
+                        if (hasChanges) state.saved = false;
+                    }
+
+                    // 2. Push the merged updated state to backend
+                    const updateResponse = await fetch(`/api/bills/${state.collabId}/update`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(state)
+                    });
+
+                    if (!updateResponse.ok) throw new Error("Failed to update bill session.");
+                    console.log("Cambios sincronizados al enlace");
+                    showToast("Cambios sincronizados al enlace");
+                    saveState(); // Save locally with merged data
+                    
+                    // 3. Auto-update History record if it exists and there are changes
+                    if (state.historyId && !state.saved) {
+                        saveBillToHistory(true); // true = silent (don't show a second toast)
+                    }
+
+                } else {
+                    // Create new session
+                    const response = await fetch('/api/bills/create', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(state)
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error("Failed to create bill session on server.");
+                    }
+                    
+                    const data = await response.json();
+                    state.collabId = data.uuid; 
+                    state.saved = false; // Mark unsaved so history catches the collabId
+                    showToast("¡Enlace generado! Cópialo abajo.");
+                    saveState();
+                    
+                    // Auto-update history record if it was already saved BEFORE linking
+                    if (state.historyId) {
+                        saveBillToHistory(true); // true = silent
+                    }
+                }
+                
+                // Construct the URL pointing to the shared HTML file
+                const shareUrl = window.location.origin + '/shared_bill/' + state.collabId;
+
+                hideLoading();
+
+                // Attempt to share
+                const shareData = {
+                    title: 'Dividir Cuenta Splitio',
+                    text: 'Entra a este enlace y selecciona qué has comido: ',
+                    url: shareUrl
+                };
+            } catch (error) {
+                console.error("Error:", error);
+                alert("Hubo un error al procesar el enlace.");
+                hideLoading();
+            }
+        }
+
+        function copyCollabLink() {
+            const copyText = els.collabLinkInput.value;
+            if(!copyText) return;
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(copyText).then(() => {
+                    showToast("Enlace copiado");
+                });
+            } else {
+                els.collabLinkInput.select();
+                document.execCommand("copy");
+                showToast("Enlace copiado");
+            }
+        }
+
+        function renderCollabUI() {
+            if (state.collabId) {
+                // Show link container
+                const shareUrl = window.location.origin + '/shared_bill/' + state.collabId;
+                els.collabLinkInput.value = shareUrl;
+                els.collabLinkContainer.classList.remove('hidden');
+                
+                // Update Button to "Sync"
+                els.collabBtnText.textContent = "Sobreescribir Cambios al Enlace";
+                els.collabBtnIcon.className = "fa-solid fa-rotate";
+                els.collabMainBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                els.collabMainBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
+            } else {
+                // Hide link container
+                els.collabLinkContainer.classList.add('hidden');
+                els.collabLinkInput.value = '';
+                
+                // Reset Button to "Create"
+                els.collabBtnText.textContent = "Crear Enlace Colaborativo";
+                els.collabBtnIcon.className = "fa-solid fa-link";
+                els.collabMainBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                els.collabMainBtn.classList.remove('bg-indigo-600', 'hover:bg-indigo-700');
+            }
+        }
+
         // --- History Logic ---
 
-        function saveBillToHistory() {
+        function saveBillToHistory(silent = false) {
             if (state.items.length === 0 && state.people.length === 0) {
-                alert("La cuenta está vacía.");
+                if (!silent) alert("La cuenta está vacía.");
                 return;
             }
 
             if (state.saved) return; // Prevention, though button is hidden
 
-            // Calculate current debts snapshot
+            // Calculate current debts snapshot using PROPORTIONAL logic
             const debts = []; 
             const personTotals = {};
             let grandTotal = 0;
@@ -464,12 +619,22 @@
             state.people.forEach(p => personTotals[p.id] = 0);
             
             state.items.forEach(item => {
-                grandTotal += (item.price * item.qty);
-                if (item.assignedTo.length > 0) {
-                    const share = (item.price * item.qty) / item.assignedTo.length;
-                    item.assignedTo.forEach(pid => {
-                        if (personTotals[pid] !== undefined) personTotals[pid] += share;
-                    });
+                const totalCost = item.price * item.qty;
+                grandTotal += totalCost;
+                
+                const totalClaims = item.assignedTo.length;
+                if (totalClaims > 0) {
+                    if (totalClaims <= item.qty) {
+                        const costPerClaim = item.price;
+                        item.assignedTo.forEach(pid => { 
+                            if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
+                        });
+                    } else {
+                        const costPerClaim = totalCost / totalClaims;
+                        item.assignedTo.forEach(pid => { 
+                            if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
+                        });
+                    }
                 }
             });
 
@@ -486,23 +651,161 @@
                 }
             });
 
+            if (state.historyId) {
+                // Update existing history entry
+                const existingIndex = history.findIndex(h => h.id === state.historyId);
+                if (existingIndex > -1) {
+                    const existingBill = history[existingIndex];
+                    
+                    // Preserve paid status from old snapshot
+                    debts.forEach(newDebt => {
+                        const oldDebt = existingBill.participants.find(p => p.personId === newDebt.personId);
+                        if (oldDebt && oldDebt.paid) {
+                            newDebt.paid = true;
+                        }
+                    });
+
+                    history[existingIndex] = {
+                        ...existingBill,
+                        name: state.billName || 'Cuenta sin nombre',
+                        total: grandTotal,
+                        payerName: state.people.find(p => p.id === state.payerId)?.name || 'Nadie',
+                        participants: debts,
+                        collabId: state.collabId
+                    };
+                    
+                    state.saved = true;
+                    saveState();
+                    saveHistory();
+                    els.historyBadge.classList.remove('hidden');
+                    if (!silent) showToast("Historial actualizado");
+                    return;
+                }
+            }
+
+            // Create new history entry
+            const newBillId = generateId();
             const newBill = {
-                id: generateId(),
+                id: newBillId,
                 name: state.billName || 'Cuenta sin nombre',
                 date: new Date().toISOString(),
                 total: grandTotal,
                 payerName: state.people.find(p => p.id === state.payerId)?.name || 'Nadie',
-                participants: debts
+                participants: debts,
+                collabId: state.collabId // Add the collaborative link ID
             };
 
             history.unshift(newBill); 
+            state.historyId = newBillId;
             state.saved = true;
             saveState(); // Persist saved state
             saveHistory();
             
-            // Show Badge and Toast
             els.historyBadge.classList.remove('hidden');
-            showToast("Cuenta guardada en Historial");
+            if (!silent) showToast("Cuenta guardada en Historial");
+        }
+
+        async function syncHistoryBill(historyBillId) {
+            const billIndex = history.findIndex(h => h.id === historyBillId);
+            if (billIndex === -1) return;
+            const bill = history[billIndex];
+
+            if (!bill.collabId) return;
+
+            // UI Inline Loading
+            const syncBtn = document.getElementById(`sync-btn-${historyBillId}`);
+            if (syncBtn) {
+                syncBtn.disabled = true;
+                syncBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
+                syncBtn.classList.add('opacity-70', 'cursor-not-allowed');
+            }
+
+            try {
+                const response = await fetch(`/api/bills/${bill.collabId}`);
+                if (!response.ok) throw new Error("No se pudo obtener la cuenta.");
+                const serverState = await response.json();
+
+                // Recalculate current debts snapshot using PROPORTIONAL logic based on server state
+                const debts = []; 
+                const personTotals = {};
+                let grandTotal = 0;
+
+                serverState.people.forEach(p => personTotals[p.id] = 0);
+                
+                serverState.items.forEach(item => {
+                    const totalCost = item.price * item.qty;
+                    grandTotal += totalCost;
+                    const totalClaims = item.assignedTo.length;
+
+                    if (totalClaims > 0) {
+                        if (totalClaims <= item.qty) {
+                            const costPerClaim = item.price;
+                            item.assignedTo.forEach(pid => { 
+                                if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
+                            });
+                        } else {
+                            const costPerClaim = totalCost / totalClaims;
+                            item.assignedTo.forEach(pid => { 
+                                if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
+                            });
+                        }
+                    }
+                });
+
+                serverState.people.forEach(p => {
+                    if (personTotals[p.id] > 0) {
+                        const isPayer = (p.id === serverState.payerId);
+                        debts.push({
+                            personId: p.id,
+                            name: p.name,
+                            amount: personTotals[p.id],
+                            isPayer: isPayer,
+                            paid: isPayer 
+                        });
+                    }
+                });
+
+                // Preserve paid status from old history snapshot
+                debts.forEach(newDebt => {
+                    const oldDebt = bill.participants.find(p => p.personId === newDebt.personId);
+                    if (oldDebt && oldDebt.paid) {
+                        newDebt.paid = true;
+                    }
+                });
+
+                // Update history record
+                history[billIndex] = {
+                    ...bill,
+                    name: serverState.billName || 'Cuenta sin nombre',
+                    total: grandTotal,
+                    payerName: serverState.people.find(p => p.id === serverState.payerId)?.name || 'Nadie',
+                    participants: debts
+                };
+
+                // If currently loaded in calculator, also update the active state seamlessly
+                if (state.historyId === historyBillId) {
+                    state.items.forEach(localItem => {
+                        const serverItem = serverState.items.find(i => i.id === localItem.id);
+                        if (serverItem) {
+                            localItem.assignedTo = serverItem.assignedTo;
+                        }
+                    });
+                    state.saved = true;
+                    saveState();
+                }
+
+                saveHistory(); 
+                showToast("Sincronización completa");
+            } catch (error) {
+                console.error("Error syncing history:", error);
+                alert("Hubo un error al sincronizar la cuenta.");
+                // Reset button if error (on success, renderHistory naturally resets it)
+                if (syncBtn) {
+                    syncBtn.disabled = false;
+                    syncBtn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar Selecciones';
+                    syncBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+                }
+            }
         }
 
         function togglePayment(billId, personId) {
@@ -520,6 +823,14 @@
             if(confirm("¿Eliminar esta cuenta del historial?")) {
                 history = history.filter(h => h.id !== billId);
                 if (expandedBillId === billId) expandedBillId = null;
+                
+                // If it's the current active bill, reset the link internally
+                if (state.historyId === billId) {
+                    state.historyId = null;
+                    state.saved = false;
+                    saveState();
+                }
+                
                 saveHistory();
             }
         }
@@ -557,6 +868,29 @@
                 const percent = totalDebt > 0 ? (paidDebt / totalDebt) * 100 : 0;
                 const isFullyPaid = percent >= 99.9;
 
+                // Collaborative Link Banner inside History
+                let collabLinkHtml = '';
+                if (bill.collabId) {
+                    const shareUrl = window.location.origin + '/shared_bill/' + bill.collabId;
+                    collabLinkHtml = `
+                        <div class="mb-4 bg-blue-50 p-3 rounded-xl border border-blue-100 flex flex-col gap-2 shadow-sm">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="truncate flex-1 text-xs text-blue-700 font-medium flex items-center">
+                                    <i class="fa-solid fa-link mr-2"></i> Enlace activo
+                                </div>
+                                <button onclick="window.location.href='${shareUrl}'" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold transition-colors shadow-sm whitespace-nowrap active:scale-95 flex items-center gap-1">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Abrir
+                                </button>
+                            </div>
+                            <div class="border-t border-blue-100 pt-2 mt-1">
+                                <button id="sync-btn-${bill.id}" onclick="syncHistoryBill('${bill.id}')" class="w-full bg-white hover:bg-blue-100 text-blue-700 border border-blue-200 px-3 py-2 rounded-lg text-[10px] font-bold transition-colors shadow-sm active:scale-95 flex justify-center items-center gap-2 disabled:active:scale-100">
+                                    <i class="fa-solid fa-rotate"></i> Sincronizar Selecciones
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+
                 const card = document.createElement('div');
                 card.className = 'bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden';
                 
@@ -584,6 +918,7 @@
 
                     <!-- Details -->
                     <div class="${isExpanded ? '' : 'hidden'} border-t border-gray-100 bg-gray-50 p-4 animate-fade-in">
+                        ${collabLinkHtml}
                         <div class="space-y-3">
                             ${bill.participants.map(p => `
                                 <div class="flex items-center justify-between">
@@ -1099,17 +1434,31 @@
             const personTotals = {}; 
             let grandTotal = 0;
             let unclaimedTotal = 0;
+
             state.people.forEach(p => personTotals[p.id] = 0);
+
             state.items.forEach(item => {
                 const totalCost = item.price * item.qty;
                 grandTotal += totalCost;
-                if (item.assignedTo.length > 0) {
-                    const splitAmount = totalCost / item.assignedTo.length;
-                    item.assignedTo.forEach(pid => { if (personTotals[pid] !== undefined) personTotals[pid] += splitAmount; });
-                } else {
+                
+                const totalClaims = item.assignedTo.length;
+
+                if (totalClaims === 0) {
                     unclaimedTotal += totalCost;
+                } else if (totalClaims <= item.qty) {
+                    const costPerClaim = item.price;
+                    item.assignedTo.forEach(pid => { 
+                        if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
+                    });
+                    unclaimedTotal += (item.qty - totalClaims) * item.price;
+                } else {
+                    const costPerClaim = totalCost / totalClaims;
+                    item.assignedTo.forEach(pid => { 
+                        if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
+                    });
                 }
             });
+
             els.receiptBillName.textContent = state.billName || 'CUENTA TOTAL';
             els.grandTotalDisplay.textContent = formatCurrency(grandTotal);
             const payer = state.people.find(p => p.id === state.payerId);
@@ -1121,33 +1470,49 @@
                 els.payerBadge.classList.add('hidden');
                 els.payerBadge.classList.remove('inline-block');
             }
+
             els.receiptContent.innerHTML = '';
             if (state.people.length === 0 && state.items.length === 0) {
                 els.receiptContent.innerHTML = `<div class="text-center text-gray-400 italic text-sm py-4">Añade personas y artículos para ver la división.</div>`;
                 els.settlementSection.classList.add('hidden');
                 return;
             }
+
             state.people.forEach(person => {
                 const amount = personTotals[person.id];
                 const personItems = state.items.filter(i => i.assignedTo.includes(person.id));
                 const div = document.createElement('div');
                 div.className = 'border-b border-gray-100 pb-3 last:border-0';
+                
                 let detailsHtml = '';
                 if (personItems.length > 0) {
                     detailsHtml = `<div class="mt-1 pl-2 border-l-2 border-gray-100 space-y-1">${personItems.map(i => {
-                        const share = (i.price * i.qty) / i.assignedTo.length;
-                        return `<div class="flex justify-between text-xs text-gray-500"><span class="truncate w-3/4">${i.name} (1/${i.assignedTo.length})</span><span>${formatCurrency(share)}</span></div>`
+                        const totalClaims = i.assignedTo.length;
+                        const myCount = i.assignedTo.filter(id => id === person.id).length;
+                        
+                        let share = 0;
+                        if (totalClaims <= i.qty) {
+                            share = myCount * i.price;
+                        } else {
+                            share = myCount * ((i.price * i.qty) / totalClaims);
+                        }
+                        
+                        const portionText = myCount > 1 ? `	(x${myCount})` :`(x1)`;
+
+                        return `<div class="flex justify-between text-xs text-gray-500"><span class="truncate w-3/4">${i.name} ${portionText}</span><span>${formatCurrency(share)}</span></div>`
                     }).join('')}</div>`;
                 }
                 div.innerHTML = `<div class="flex justify-between items-center mb-1"><span class="font-bold text-gray-800">${person.name}</span><span class="font-mono font-bold text-lg ${amount > 0 ? 'text-primary' : 'text-gray-400'}">${formatCurrency(amount)}</span></div>${detailsHtml}`;
                 els.receiptContent.appendChild(div);
             });
+
             if (unclaimedTotal > 0.01) {
                 const div = document.createElement('div');
                 div.className = 'mt-4 bg-orange-50 p-3 rounded-lg border border-orange-100';
                 div.innerHTML = `<div class="flex justify-between items-center text-orange-700 font-bold text-sm"><span><i class="fa-solid fa-circle-exclamation mr-1"></i> Artículos Sin Asignar</span><span>${formatCurrency(unclaimedTotal)}</span></div>`;
                 els.receiptContent.appendChild(div);
             }
+
             if (payer) {
                 els.settlementSection.classList.remove('hidden');
                 els.settlementList.innerHTML = '';
@@ -1176,6 +1541,13 @@
                 els.saveBillBtn.classList.remove('hidden');
                 els.actionButtonsGrid.classList.add('grid-cols-2');
                 els.actionButtonsGrid.classList.remove('grid-cols-1');
+                
+                // Change text if updating
+                if (state.historyId) {
+                    els.saveBillBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Actualizar';
+                } else {
+                    els.saveBillBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Guardar';
+                }
             }
         }
 
@@ -1184,6 +1556,7 @@
             renderPeople();
             renderItems();
             renderReceipt();
+            renderCollabUI();
         }
 
         render();
