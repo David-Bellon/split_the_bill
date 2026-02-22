@@ -81,7 +81,7 @@ async def process_receipt(request: Request, receipt_request: ReceiptRequest):
     try:
         # Call OpenAI API with the image
         response = client.beta.chat.completions.parse(
-            model="gpt-4o-mini", # Make sure to use 'gpt-4o-mini' instead of 'gpt-4.1-mini'
+            model="gpt-4.1-mini", # Make sure to use 'gpt-4o-mini' instead of 'gpt-4.1-mini'
             messages=[
                 {
                     "role": "system",
