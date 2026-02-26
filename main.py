@@ -78,6 +78,36 @@ async def read_shared_bill():
 @app.post("/process-receipt", status_code=200)
 @limiter.limit("5/minute")  # Allow 5 requests per minute
 async def process_receipt(request: Request, receipt_request: ReceiptRequest):
+    import base64
+    import re
+    import uuid
+    import os
+
+    # Ensure the bills_images directory exists
+    IMAGES_DIR = "bills_images"
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+
+    # Generate a unique filename for the image
+    image_id = str(uuid.uuid4())
+
+    # Extract the image type and the base64 data (expecting data URL: "data:image/jpeg;base64,...")
+    match = re.match(r"data:image/(?P<ext>\w+);base64,(?P<data>.+)", receipt_request.image)
+    if match:
+        image_ext = match.group("ext")
+        image_data = match.group("data")
+    else:
+        image_ext = "jpg"
+        image_data = receipt_request.image  # fallback, but this may not work if not a plain base64 string
+
+    image_filename = f"{image_id}.{image_ext}"
+    image_path = os.path.join(IMAGES_DIR, image_filename)
+
+    # Decode and save the image
+    try:
+        with open(image_path, "wb") as f:
+            f.write(base64.b64decode(image_data))
+    except Exception as e:
+        print(f"Error saving receipt image: {str(e)}")
     try:
         # Call OpenAI API with the image
         response = client.beta.chat.completions.parse(
