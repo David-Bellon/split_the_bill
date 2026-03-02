@@ -111,7 +111,7 @@ async def process_receipt(request: Request, receipt_request: ReceiptRequest):
     try:
         # Call OpenAI API with the image
         response = client.beta.chat.completions.parse(
-            model="gpt-4.1-mini", # Make sure to use 'gpt-4o-mini' instead of 'gpt-4.1-mini'
+            model="gpt-4.1-mini",
             messages=[
                 {
                     "role": "system",
@@ -151,6 +151,14 @@ async def process_receipt(request: Request, receipt_request: ReceiptRequest):
 
 # --- Collaborative Link Endpoints ---
 
+import re as _re
+
+def _validate_bill_id(bill_id: str) -> str:
+    """Validates that bill_id is a proper UUID to prevent path traversal attacks."""
+    if not _re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", bill_id, _re.IGNORECASE):
+        raise HTTPException(status_code=400, detail="Invalid bill ID format.")
+    return bill_id
+
 @app.post("/api/bills/create")
 async def create_bill(bill_state: Dict[str, Any]):
     """Creates a new bill session and returns a UUID."""
@@ -165,6 +173,7 @@ async def create_bill(bill_state: Dict[str, Any]):
 @app.get("/api/bills/{bill_id}")
 async def get_bill(bill_id: str):
     """Retrieves an existing bill session by UUID."""
+    _validate_bill_id(bill_id)
     filepath = os.path.join(BILLS_DIR, f"{bill_id}.json")
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="Bill not found")
@@ -175,6 +184,7 @@ async def get_bill(bill_id: str):
 @app.post("/api/bills/{bill_id}/update")
 async def update_bill(bill_id: str, bill_state: Dict[str, Any]):
     """Updates an existing bill session with new user selections."""
+    _validate_bill_id(bill_id)
     filepath = os.path.join(BILLS_DIR, f"{bill_id}.json")
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="Bill not found")

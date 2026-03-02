@@ -76,43 +76,68 @@
                 <span id="syncStatus" class="text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded-full opacity-0 transition-opacity"><i class="fa-solid fa-cloud-arrow-up"></i> Guardado</span>
             </div>
 
-            <div id="collabItemsList" class="space-y-3">
+            <div id="collabItemsList">
                 <!-- Items generated here -->
             </div>
         </section>
 
-        <!-- Step 3: Receipt Summary -->
-        <section id="receiptSection" class="hidden animate-fade mt-8">
+        <!-- Step 3: My Total Summary -->
+        <section id="receiptSection" class="hidden animate-fade mt-4">
             <h3 class="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-3 px-2">
-                Resumen de la Cuenta
+                Tu resumen
             </h3>
             
-            <div class="bg-white p-6 shadow-lg relative mb-4 rounded-t-lg min-h-[200px]" id="receiptCard">
-                <div class="text-center mb-6 border-b border-dashed border-gray-300 pb-4">
-                    <h3 class="font-mono text-xl font-bold tracking-tighter text-gray-800 uppercase" id="receiptBillName">CUENTA TOTAL</h3>
-                    <p class="text-gray-400 text-xs mt-1" id="receiptDate">Cargando fecha...</p>
-                    <div id="payerBadge" class="hidden mt-2 inline-block bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
-                        Pagado por <span id="payerBadgeName"></span>
+            <!-- No payer notice -->
+            <div id="noPayerNotice" class="hidden mb-3 bg-orange-50 border border-orange-200 rounded-xl p-3 text-xs text-orange-700 flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation flex-shrink-0"></i>
+                <span>El organizador aún no ha indicado quién pagó. Tu total aparecerá abajo pero la liquidación no está disponible.</span>
+            </div>
+
+            <!-- Shared-item warning -->
+            <div class="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex gap-3">
+                <div class="flex-shrink-0 w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                    <i class="fa-solid fa-clock text-amber-500 text-sm"></i>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-amber-900 mb-0.5">Tu total puede cambiar</p>
+                    <p class="text-xs text-amber-700 leading-relaxed">Si compartes artículos con otras personas, el coste se dividirá entre todos los que los marquen. <strong>Espera a que el resto del grupo haga su selección</strong> antes de realizar el pago.</p>
+                </div>
+            </div>
+
+            <!-- My Total Card -->
+            <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mb-4">
+                <div class="bg-indigo-600 px-5 py-4 text-white">
+                    <div class="text-xs font-semibold uppercase tracking-wide opacity-75 mb-1">Tu total</div>
+                    <div class="font-mono text-3xl font-bold" id="myTotalDisplay">€0,00</div>
+                </div>
+                <div id="myItemsList" class="p-4 space-y-1.5 text-sm">
+                    <p class="text-gray-400 italic text-xs">Selecciona artículos arriba para ver tu desglose.</p>
+                </div>
+                <!-- Settlement call-to-action -->
+                <div id="settlementCTA" class="hidden border-t border-gray-100 bg-green-50 px-5 py-3">
+                    <div class="text-sm font-bold text-green-800" id="settlementCTAText"></div>
+                    <p class="text-[10px] text-green-600 mt-1 leading-tight"><i class="fa-solid fa-clock mr-1"></i>Este importe puede cambiar si otros aún no han marcado sus artículos.</p>
+                </div>
+            </div>
+
+            <!-- Full group receipt (collapsed by default) -->
+            <details class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <summary class="px-4 py-3 text-xs font-bold text-gray-500 uppercase tracking-wide cursor-pointer hover:bg-gray-50 list-none flex justify-between items-center">
+                    <span><i class="fa-solid fa-receipt mr-2 text-gray-400"></i>Ver resumen completo del grupo</span>
+                    <i class="fa-solid fa-chevron-down text-gray-400 text-[10px]"></i>
+                </summary>
+                <div class="border-t border-gray-100 p-4">
+                    <div id="receiptContent" class="space-y-4"></div>
+                    <div id="settlementSection" class="hidden mt-4 pt-3 border-t border-gray-100">
+                        <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Ajuste de Cuentas</h4>
+                        <div id="settlementList" class="space-y-1 text-sm font-mono text-gray-600"></div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t-2 border-gray-800 flex justify-between items-end">
+                        <span class="font-mono text-xs font-bold">TOTAL FINAL</span>
+                        <span class="font-mono text-xl font-bold text-gray-900" id="grandTotalDisplay">€0,00</span>
                     </div>
                 </div>
-
-                <div id="receiptContent" class="space-y-6">
-                    <!-- Calculated split goes here -->
-                </div>
-
-                <!-- Settlement Section -->
-                <div id="settlementSection" class="hidden mt-6 pt-4 border-t border-gray-100">
-                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Ajuste de Cuentas</h4>
-                    <div id="settlementList" class="space-y-1 text-sm font-mono text-gray-600"></div>
-                </div>
-
-                <div class="mt-8 pt-4 border-t-2 border-gray-800 flex justify-between items-end">
-                    <span class="font-mono text-sm font-bold">TOTAL FINAL</span>
-                    <span class="font-mono text-2xl font-bold text-gray-900" id="grandTotalDisplay">$0.00</span>
-                </div>
-                
-                <div class="receipt-tear"></div>
-            </div>
+            </details>
         </section>
 
     </main>
@@ -138,13 +163,15 @@
             // Receipt Elements
             receiptSection: document.getElementById('receiptSection'),
             receiptContent: document.getElementById('receiptContent'),
-            receiptBillName: document.getElementById('receiptBillName'),
-            receiptDate: document.getElementById('receiptDate'),
             grandTotalDisplay: document.getElementById('grandTotalDisplay'),
-            payerBadge: document.getElementById('payerBadge'),
-            payerBadgeName: document.getElementById('payerBadgeName'),
             settlementSection: document.getElementById('settlementSection'),
-            settlementList: document.getElementById('settlementList')
+            settlementList: document.getElementById('settlementList'),
+            // My Total Elements
+            myTotalDisplay: document.getElementById('myTotalDisplay'),
+            myItemsList: document.getElementById('myItemsList'),
+            settlementCTA: document.getElementById('settlementCTA'),
+            settlementCTAText: document.getElementById('settlementCTAText'),
+            noPayerNotice: document.getElementById('noPayerNotice'),
         };
 
         // ==========================================
@@ -223,28 +250,38 @@
         function normalizeBillItems() {
             let hasChanges = false;
             const expandedItems = [];
+            const totalPeople = billState.people.length;
             
             billState.items.forEach(item => {
-                // Si el item viene con cantidad > 1 desde el origen, lo dividimos
-                // en unidades individuales para permitir asignaciones precisas.
-                if (item.qty > 1) {
+                const uniqueAssignees = new Set(item.assignedTo);
+                const isAssignedToAll = totalPeople > 0 && uniqueAssignees.size === totalPeople && item.assignedTo.length === totalPeople;
+                
+                if (isAssignedToAll) {
+                    item.isLocked = true;
+                    expandedItems.push(item);
+                } else if (item.qty > 1) {
+                    // Only expand if the item hasn't already been expanded on a previous visit
+                    // (expanded items have ids like "originalId_0", "originalId_1")
+                    const alreadyExpanded = billState.items.some(i => i.id.startsWith(item.id + '_'));
+                    if (alreadyExpanded) {
+                        item.isLocked = false;
+                        expandedItems.push(item);
+                        return;
+                    }
                     hasChanges = true;
-                    
-                    // Creamos el array de las unidades individuales
                     const units = Array.from({ length: item.qty }, (_, i) => ({
                         id: item.id + '_' + i,
                         name: item.name,
                         price: item.price,
                         qty: 1,
-                        assignedTo: []
+                        assignedTo: [],
+                        isLocked: false
                     }));
 
                     const assignCount = item.assignedTo.length;
                     
                     if (assignCount > 0) {
-                        // DISTRIBUCIÓN INTELIGENTE:
                         if (item.qty % assignCount === 0) {
-                            // Caso A: Hay más unidades exactas por persona (Ej: 4 aguas, 2 personas -> 2 c/u)
                             const itemsPerUser = item.qty / assignCount;
                             let unitIdx = 0;
                             item.assignedTo.forEach(uid => {
@@ -253,7 +290,6 @@
                                 }
                             });
                         } else if (assignCount % item.qty === 0) {
-                            // Caso B: Hay más personas exactas por unidad (Ej: 2 aguas, 4 personas -> 2 personas x agua)
                             const usersPerItem = assignCount / item.qty;
                             let userIdx = 0;
                             for (let i = 0; i < item.qty; i++) {
@@ -262,22 +298,22 @@
                                 }
                             }
                         } else {
-                            // Caso C: No es simétrico (Ej: 3 unidades, 2 personas). 
-                            // Para mantener la matemática perfecta en el backend, asignamos a todos en todo.
                             units.forEach(u => u.assignedTo = [...item.assignedTo]);
                         }
                     }
                     
                     expandedItems.push(...units);
                 } else {
-                    // Mantenemos items singulares tal cual
+                    item.isLocked = false;
                     expandedItems.push(item);
                 }
             });
             
             if (hasChanges) {
                 billState.items = expandedItems;
-                syncToBackend(); // Guardamos el estado desglosado en el servidor de forma silenciosa
+                syncToBackend();
+            } else {
+                billState.items = expandedItems;
             }
         }
 
@@ -293,19 +329,12 @@
             els.loadingState.style.display = 'none';
             els.billTitle.innerHTML = `<i class="fa-solid fa-file-invoice-dollar text-primary"></i> ${billState.billName || 'Cuenta'}`;
             
-            // Set date
-            const dateObj = billState.date ? new Date(billState.date) : new Date();
-            els.receiptDate.textContent = dateObj.toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric'});
-
-            // Show the receipt right away so they can see the overall bill
-            els.receiptSection.classList.remove('hidden');
-            renderReceipt();
-
             // Check if user is already saved in localStorage for this specific bill
             const savedUserId = localStorage.getItem(`splitio_user_${billId}`);
             if (savedUserId && billState.people.find(p => p.id === savedUserId)) {
                 selectUser(savedUserId);
             } else {
+                els.receiptSection.classList.add('hidden');
                 renderPeopleSelection();
             }
         }
@@ -313,6 +342,7 @@
         function renderPeopleSelection() {
             els.whoAmISection.classList.remove('hidden');
             els.itemsSection.classList.add('hidden');
+            els.receiptSection.classList.add('hidden'); // Hide total card while selecting identity
             els.peopleGrid.innerHTML = '';
 
             billState.people.forEach(person => {
@@ -326,24 +356,27 @@
 
         function selectUser(personId) {
             currentUser = billState.people.find(p => p.id === personId);
-            localStorage.setItem(`splitio_user_${billId}`, currentUser.id); // Remember user
+            localStorage.setItem(`splitio_user_${billId}`, currentUser.id);
             
             els.whoAmISection.classList.add('hidden');
             els.itemsSection.classList.remove('hidden');
+            els.receiptSection.classList.remove('hidden'); // Show total card only once identity is known
             els.currentUserName.textContent = currentUser.name;
             
             renderItems();
+            renderReceipt();
         }
 
         function changeUser() {
             localStorage.removeItem(`splitio_user_${billId}`);
             currentUser = null;
             renderPeopleSelection();
+            renderReceipt(); // Clear personal card and "Tú" badge
         }
 
         function toggleItem(itemId) {
             const item = billState.items.find(i => i.id === itemId);
-            if (!item) return;
+            if (!item || item.isLocked) return; // Locked items assigned to all cannot be toggled
 
             // Add or remove current user locally
             if (item.assignedTo.includes(currentUser.id)) {
@@ -360,31 +393,75 @@
         function renderItems() {
             els.collabItemsList.innerHTML = '';
 
-            const groupedData = [];
-            const processedIds = new Set();
-            
-            // Agrupamos visualmente items con el mismo nombre y precio
-            billState.items.forEach(item => {
-                if (processedIds.has(item.id)) return;
-                const key = `${item.name.toLowerCase().trim()}|${item.price}`;
-                const groupItems = billState.items.filter(i => `${i.name.toLowerCase().trim()}|${i.price}` === key);
-                
-                if (groupItems.length > 1) {
-                    groupedData.push({ type: 'group', key: key, items: groupItems });
-                    groupItems.forEach(i => processedIds.add(i.id));
-                } else {
-                    groupedData.push({ type: 'single', item: item });
-                    processedIds.add(item.id);
-                }
-            });
+            const lockedItems = billState.items.filter(i => i.isLocked);
+            const activeItems = billState.items.filter(i => !i.isLocked);
 
-            groupedData.forEach(groupObj => {
-                if (groupObj.type === 'single') renderCollabSingleItem(groupObj.item);
-                else renderCollabGroupItems(groupObj.items);
-            });
+            // 1. Render Locked Items (Artículos Compartidos por Todos)
+            if (lockedItems.length > 0) {
+                const lockedContainer = document.createElement('div');
+                lockedContainer.className = 'mb-6 space-y-3';
+                lockedContainer.innerHTML = `<h4 class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2 px-2"><i class="fa-solid fa-lock mr-1"></i> Compartido por todos</h4>`;
+                
+                lockedItems.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-50 border border-gray-200 rounded-xl p-4 opacity-80';
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-users text-xs"></i>
+                            </div>
+                            <div class="flex-1 pr-2 min-w-0">
+                                <h4 class="font-bold text-gray-700 leading-tight truncate">${item.name} ${item.qty > 1 ? `<span class="text-xs font-normal text-gray-500 ml-1">(x${item.qty})</span>` : ''}</h4>
+                                <div class="text-[10px] text-gray-500 mt-0.5">Asignado a todos en la cuenta principal</div>
+                            </div>
+                            <div class="font-mono font-bold text-gray-600 text-right">
+                                ${formatCurrency(item.price * item.qty)}
+                            </div>
+                        </div>
+                    `;
+                    lockedContainer.appendChild(card);
+                });
+                
+                els.collabItemsList.appendChild(lockedContainer);
+            }
+
+            // 2. Render Active Items (Artículos a repartir)
+            if (activeItems.length > 0) {
+                const activeContainer = document.createElement('div');
+                activeContainer.className = 'space-y-3';
+                
+                if (lockedItems.length > 0) {
+                    activeContainer.innerHTML = `<h4 class="text-xs uppercase tracking-wide text-gray-500 font-semibold mb-2 px-2 mt-4">Para repartir</h4>`;
+                }
+
+                const groupedData = [];
+                const processedIds = new Set();
+                
+                // Agrupamos visualmente items con el mismo nombre y precio
+                activeItems.forEach(item => {
+                    if (processedIds.has(item.id)) return;
+                    const key = `${item.name.toLowerCase().trim()}|${item.price}`;
+                    const groupItems = activeItems.filter(i => `${i.name.toLowerCase().trim()}|${i.price}` === key);
+                    
+                    if (groupItems.length > 1) {
+                        groupedData.push({ type: 'group', key: key, items: groupItems });
+                        groupItems.forEach(i => processedIds.add(i.id));
+                    } else {
+                        groupedData.push({ type: 'single', item: item });
+                        processedIds.add(item.id);
+                    }
+                });
+
+                groupedData.forEach(groupObj => {
+                    if (groupObj.type === 'single') renderCollabSingleItem(groupObj.item, activeContainer);
+                    else renderCollabGroupItems(groupObj.items, activeContainer);
+                });
+                
+                els.collabItemsList.appendChild(activeContainer);
+            }
         }
 
-        function renderCollabSingleItem(item) {
+        function renderCollabSingleItem(item, parentContainer) {
             const isMine = item.assignedTo.includes(currentUser.id);
             const isShared = item.assignedTo.length > 0;
             
@@ -422,10 +499,10 @@
                     ${usersHtml}
                 </div>
             `;
-            els.collabItemsList.appendChild(card);
+            parentContainer.appendChild(card);
         }
 
-        function renderCollabGroupItems(items) {
+        function renderCollabGroupItems(items, parentContainer) {
             const firstItem = items[0];
             
             const container = document.createElement('div');
@@ -479,7 +556,7 @@
             });
             
             container.appendChild(list);
-            els.collabItemsList.appendChild(container);
+            parentContainer.appendChild(container);
         }
 
         function renderReceipt() {
@@ -488,66 +565,90 @@
             const personTotals = {}; 
             let grandTotal = 0;
             let unclaimedTotal = 0;
+            const totalPeople = billState.people.length;
 
             billState.people.forEach(p => personTotals[p.id] = 0);
 
-            // 1. Calculate the new proportional split
             billState.items.forEach(item => {
                 const totalCost = item.price * item.qty;
                 grandTotal += totalCost;
-                
                 const totalClaims = item.assignedTo.length;
+                const uniqueAssignees = new Set(item.assignedTo);
+                const isAssignedToAll = totalPeople > 0 && uniqueAssignees.size === totalPeople && totalClaims === totalPeople;
 
                 if (totalClaims === 0) {
                     unclaimedTotal += totalCost;
-                } else if (totalClaims <= item.qty) {
-                    // Each claim represents 1 full unit price
-                    const costPerClaim = item.price;
-                    item.assignedTo.forEach(pid => { 
-                        if (personTotals[pid] !== undefined) {
-                            personTotals[pid] += costPerClaim;
-                        }
-                    });
-                    // Anything left over goes to unclaimed
-                    unclaimedTotal += (item.qty - totalClaims) * item.price;
-                } else {
-                    // Over-claimed: People are sharing units, divide total cost evenly across claims
+                } else if (isAssignedToAll || totalClaims > item.qty) {
                     const costPerClaim = totalCost / totalClaims;
                     item.assignedTo.forEach(pid => { 
-                        if (personTotals[pid] !== undefined) {
-                            personTotals[pid] += costPerClaim;
-                        }
+                        if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
                     });
+                } else {
+                    const costPerClaim = item.price;
+                    item.assignedTo.forEach(pid => { 
+                        if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
+                    });
+                    unclaimedTotal += (item.qty - totalClaims) * item.price;
                 }
             });
 
-            // Set Header Details
-            els.receiptBillName.textContent = billState.billName || 'CUENTA TOTAL';
             els.grandTotalDisplay.textContent = formatCurrency(grandTotal);
-
-            // Update Payer Badge
             const payer = billState.people.find(p => p.id === billState.payerId);
-            if (payer) {
-                els.payerBadge.classList.remove('hidden');
-                els.payerBadge.classList.add('inline-block');
-                els.payerBadgeName.textContent = payer.name;
+
+            // --- Personal Summary Card ---
+            const myTotal = currentUser ? (personTotals[currentUser.id] || 0) : 0;
+            els.myTotalDisplay.textContent = formatCurrency(myTotal);
+
+            // My items breakdown
+            if (currentUser) {
+                const myItems = billState.items.filter(i => i.assignedTo.includes(currentUser.id));
+                if (myItems.length > 0) {
+                    // Group same items
+                    const grouped = {};
+                    myItems.forEach(item => {
+                        const totalClaims = item.assignedTo.length;
+                        const uniqueA = new Set(item.assignedTo);
+                        const isAll = totalPeople > 0 && uniqueA.size === totalPeople && totalClaims === totalPeople;
+                        const myCount = item.assignedTo.filter(id => id === currentUser.id).length;
+                        let share = 0;
+                        if (isAll || totalClaims > item.qty) {
+                            share = myCount * ((item.price * item.qty) / totalClaims);
+                        } else {
+                            share = myCount * item.price;
+                        }
+                        const key = `${item.name}|${item.price}`;
+                        if (!grouped[key]) grouped[key] = { name: item.name, share: 0, count: 0 };
+                        grouped[key].share += share;
+                        grouped[key].count += myCount;
+                    });
+                    els.myItemsList.innerHTML = Object.values(grouped).map(g => `
+                        <div class="flex justify-between items-center text-sm py-0.5">
+                            <span class="text-gray-600 truncate flex-1 pr-2">${g.name}${g.count > 1 ? ` <span class="text-xs text-gray-400">(x${g.count})</span>` : ''}</span>
+                            <span class="font-mono font-semibold text-gray-800 whitespace-nowrap">${formatCurrency(g.share)}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    els.myItemsList.innerHTML = '<p class="text-gray-400 italic text-xs">No has seleccionado ningún artículo aún.</p>';
+                }
+            }
+
+            // Settlement CTA for current user
+            if (currentUser && payer && payer.id !== currentUser.id && myTotal > 0) {
+                els.settlementCTA.classList.remove('hidden');
+                els.settlementCTAText.innerHTML = `<i class="fa-solid fa-arrow-right mr-1 text-green-600"></i> Debes pagar <strong>${formatCurrency(myTotal)}</strong> a <strong>${payer.name}</strong>`;
+                els.noPayerNotice.classList.add('hidden');
+            } else if (!payer) {
+                els.noPayerNotice.classList.remove('hidden');
+                els.settlementCTA.classList.add('hidden');
             } else {
-                els.payerBadge.classList.add('hidden');
-                els.payerBadge.classList.remove('inline-block');
+                els.settlementCTA.classList.add('hidden');
+                els.noPayerNotice.classList.add('hidden');
             }
 
+            // --- Full Group Accordion ---
             els.receiptContent.innerHTML = '';
-            
-            if (billState.people.length === 0 && billState.items.length === 0) {
-                els.receiptContent.innerHTML = `<div class="text-center text-gray-400 italic text-sm py-4">No hay datos de la cuenta.</div>`;
-                els.settlementSection.classList.add('hidden');
-                return;
-            }
-
-            // Breakdown Per Person
             billState.people.forEach(person => {
                 const amount = personTotals[person.id];
-                // Only find items where this person is assigned
                 const personItems = billState.items.filter(i => i.assignedTo.includes(person.id));
                 
                 const div = document.createElement('div');
@@ -555,72 +656,52 @@
                 
                 let detailsHtml = '';
                 if (personItems.length > 0) {
-                    // Group similar items by name and price for a cleaner receipt
                     const groupedItems = {};
                     personItems.forEach(i => {
                         const totalClaims = i.assignedTo.length;
+                        const uniqueA2 = new Set(i.assignedTo);
+                        const isAssignedToAll2 = totalPeople > 0 && uniqueA2.size === totalPeople && totalClaims === totalPeople;
                         const myCount = i.assignedTo.filter(id => id === person.id).length;
-                        
                         let share = 0;
-                        if (totalClaims <= i.qty) {
-                            share = myCount * i.price;
-                        } else {
+                        if (isAssignedToAll2 || totalClaims > i.qty) {
                             share = myCount * ((i.price * i.qty) / totalClaims);
+                        } else {
+                            share = myCount * i.price;
                         }
-                        
                         const key = `${i.name}|${i.price}`;
-                        if (!groupedItems[key]) {
-                            groupedItems[key] = { name: i.name, share: 0, count: 0 };
-                        }
+                        if (!groupedItems[key]) groupedItems[key] = { name: i.name, share: 0, count: 0 };
                         groupedItems[key].share += share;
                         groupedItems[key].count += myCount;
                     });
-
-                    detailsHtml = `
-                        <div class="mt-1 pl-2 border-l-2 border-gray-100 space-y-1">
-                            ${Object.values(groupedItems).map(g => {
-                                const portionText = g.count > 1 ? `(x${g.count})` : '';
-                                
-                                return `<div class="flex justify-between text-xs text-gray-500">
-                                            <span class="truncate w-3/4">${g.name} ${portionText}</span>
-                                            <span>${formatCurrency(g.share)}</span>
-                                        </div>`
-                            }).join('')}
-                        </div>
-                    `;
+                    detailsHtml = `<div class="mt-1 pl-2 border-l-2 border-gray-100 space-y-1">
+                        ${Object.values(groupedItems).map(g => `
+                            <div class="flex justify-between text-xs text-gray-500">
+                                <span class="truncate w-3/4">${g.name}${g.count > 1 ? ` (x${g.count})` : ''}</span>
+                                <span>${formatCurrency(g.share)}</span>
+                            </div>`).join('')}
+                    </div>`;
                 }
-
                 div.innerHTML = `
                     <div class="flex justify-between items-center mb-1">
-                        <span class="font-bold text-gray-800">${person.name}</span>
+                        <span class="font-bold text-gray-800 ${currentUser && person.id === currentUser.id ? 'text-primary' : ''}">${person.name}${currentUser && person.id === currentUser.id ? ' <span class="text-[10px] bg-indigo-100 text-indigo-600 px-1.5 rounded ml-1">Tú</span>' : ''}</span>
                         <span class="font-mono font-bold text-lg ${amount > 0 ? 'text-primary' : 'text-gray-400'}">${formatCurrency(amount)}</span>
-                    </div>
-                    ${detailsHtml}
-                `;
+                    </div>${detailsHtml}`;
                 els.receiptContent.appendChild(div);
             });
 
-            // Unclaimed warning
             if (unclaimedTotal > 0.01) {
                 const div = document.createElement('div');
                 div.className = 'mt-4 bg-orange-50 p-3 rounded-lg border border-orange-100';
-                div.innerHTML = `
-                    <div class="flex justify-between items-center text-orange-700 font-bold text-sm">
-                        <span><i class="fa-solid fa-circle-exclamation mr-1"></i> Artículos Sin Asignar</span>
-                        <span>${formatCurrency(unclaimedTotal)}</span>
-                    </div>
-                `;
+                div.innerHTML = `<div class="flex justify-between items-center text-orange-700 font-bold text-sm"><span><i class="fa-solid fa-circle-exclamation mr-1"></i> Sin asignar</span><span>${formatCurrency(unclaimedTotal)}</span></div>`;
                 els.receiptContent.appendChild(div);
             }
 
-            // Settlement Logic (If Payer Selected)
             if (payer) {
                 els.settlementSection.classList.remove('hidden');
                 els.settlementList.innerHTML = '';
-                
                 let hasDebts = false;
                 billState.people.forEach(person => {
-                    if (person.id === payer.id) return; // Skip the payer
+                    if (person.id === payer.id) return;
                     const amountOwed = personTotals[person.id];
                     if (amountOwed > 0) {
                         hasDebts = true;
@@ -629,11 +710,7 @@
                         els.settlementList.appendChild(row);
                     }
                 });
-                
-                // If only one person and they paid everything, or everyone owes 0
-                if (!hasDebts) {
-                    els.settlementList.innerHTML = `<div class="text-xs text-gray-400 italic">No hay deudas que saldar.</div>`;
-                }
+                if (!hasDebts) els.settlementList.innerHTML = `<div class="text-xs text-gray-400 italic">No hay deudas que saldar.</div>`;
             } else {
                 els.settlementSection.classList.add('hidden');
             }

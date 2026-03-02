@@ -13,6 +13,8 @@
     <!-- Html2Canvas for screenshots -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZH07M1LR8N"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
@@ -203,7 +205,24 @@
                         <i class="fa-solid fa-copy"></i>
                     </button>
                 </div>
+
+                <!-- Auto-sync notification badge -->
+                <div id="collabSyncNotice" class="hidden w-full mt-3 bg-green-50 border border-green-200 rounded-xl px-3 py-2 flex items-center gap-2 text-xs text-green-700 font-semibold cursor-pointer hover:bg-green-100 transition-colors" onclick="createCollabLink()">
+                    <i class="fa-solid fa-bell text-green-500 animate-bounce"></i>
+                    <span id="collabSyncNoticeText">Hay cambios de tus amigos. ¡Toca para sincronizar!</span>
+                </div>
             </div>
+
+            <!-- Step 2.5: Payer Selection -->
+            <section class="bg-white rounded-2xl shadow-sm p-5 list-enter" id="payerSection">
+                <h2 class="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-3 flex items-center gap-2">
+                    <span class="bg-yellow-100 text-yellow-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">💳</span>
+                    ¿Quién pagó la cuenta?
+                </h2>
+                <div id="payerButtonsContainer" class="flex flex-wrap gap-2">
+                    <p class="text-gray-400 text-sm italic w-full text-center py-2" id="emptyPayerMsg">Añade personas en el paso 1 primero.</p>
+                </div>
+            </section>
 
             <!-- Step 3: Summary -->
             <section class="list-enter">
@@ -212,15 +231,16 @@
                         <span class="bg-green-100 text-green-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span>
                         Recibo Final
                     </h2>
-                    <select id="payerSelect" onchange="updatePayer(this.value)" class="text-xs bg-white border border-gray-300 rounded-lg px-2 py-1 outline-none focus:border-primary">
-                        <option value="">¿Quién pagó?</option>
-                    </select>
                 </div>
+                <!-- Hidden select kept for backwards-compatible JS that reads state.payerId -->
+                <select id="payerSelect" class="hidden" onchange="updatePayer(this.value)">
+                    <option value="">¿Quién pagó?</option>
+                </select>
                 
                 <div class="bg-white p-6 shadow-lg relative mb-4 rounded-t-lg min-h-[200px]" id="receiptCard">
                     <div class="text-center mb-6 border-b border-dashed border-gray-300 pb-4">
                         <h3 class="font-mono text-xl font-bold tracking-tighter text-gray-800 uppercase" id="receiptBillName">CUENTA TOTAL</h3>
-                        <p class="text-gray-400 text-xs mt-1" id="receiptDate">Dec 22, 2025</p>
+                        <p class="text-gray-400 text-xs mt-1" id="receiptDate"></p>
                         <div id="payerBadge" class="hidden mt-2 inline-block bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded uppercase tracking-wide">
                             Pagado por <span id="payerBadgeName"></span>
                         </div>
@@ -288,7 +308,31 @@
         </div>
     </nav>
 
-    <!-- Toast Notification -->
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-[80] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in">
+            <div class="text-center mb-5">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl"></i>
+                </div>
+                <h3 class="font-bold text-gray-900 text-lg" id="confirmModalTitle">¿Estás seguro?</h3>
+                <p class="text-sm text-gray-500 mt-1" id="confirmModalMsg"></p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
+                <button id="confirmModalOkBtn" class="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Banner (inline, dismissable) -->
+    <div id="errorBanner" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[65] hidden w-full max-w-sm px-4">
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm shadow-lg flex items-start gap-3">
+            <i class="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0"></i>
+            <span id="errorBannerMsg" class="flex-1"></span>
+            <button onclick="document.getElementById('errorBanner').classList.add('hidden')" class="flex-shrink-0 text-red-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
     <div id="toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-[60]">
         Acción completada
     </div>
@@ -381,7 +425,9 @@
             collabBtnIcon: document.getElementById('collabBtnIcon'),
             collabBtnText: document.getElementById('collabBtnText'),
             collabLinkContainer: document.getElementById('collabLinkContainer'),
-            collabLinkInput: document.getElementById('collabLinkInput')
+            collabLinkInput: document.getElementById('collabLinkInput'),
+            collabSyncNotice: document.getElementById('collabSyncNotice'),
+            collabSyncNoticeText: document.getElementById('collabSyncNoticeText')
         };
 
         // Initialize Dates & Inputs
@@ -432,12 +478,40 @@
             renderHistory();
         }
 
+        function showError(msg) {
+            document.getElementById('errorBannerMsg').textContent = msg;
+            const banner = document.getElementById('errorBanner');
+            banner.classList.remove('hidden');
+            clearTimeout(window._errorBannerTimeout);
+            window._errorBannerTimeout = setTimeout(() => banner.classList.add('hidden'), 4000);
+        }
+
+        let _confirmCallback = null;
+        function showConfirmModal(title, msg, onConfirm) {
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalMsg').textContent = msg;
+            _confirmCallback = onConfirm;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            _confirmCallback = null;
+        }
+        document.getElementById('confirmModalOkBtn').addEventListener('click', () => {
+            if (_confirmCallback) _confirmCallback();
+            closeConfirmModal();
+        });
+
         function resetApp() {
-            if(confirm("¿Empezar una nueva cuenta? Esto borrará todos los datos no guardados.")) {
-                state = { billName: '', payerId: '', people: [], items: [], saved: false, collabId: null, historyId: null };
-                els.billNameInput.value = '';
-                saveState();
-            }
+            showConfirmModal(
+                '¿Empezar de nuevo?',
+                'Esto borrará todos los datos no guardados de la cuenta actual.',
+                () => {
+                    state = { billName: '', payerId: '', people: [], items: [], saved: false, collabId: null, historyId: null };
+                    els.billNameInput.value = '';
+                    saveState();
+                }
+            );
         }
 
         function generateId() {
@@ -478,7 +552,7 @@
         // --- Collaborative Link Logic ---
         async function createCollabLink() {
             if (state.items.length === 0 || state.people.length === 0) {
-                alert("Añade al menos una persona y un artículo primero.");
+                showError("Añade al menos una persona y un artículo antes de crear el enlace.");
                 return;
             }
 
@@ -510,7 +584,6 @@
                     });
 
                     if (!updateResponse.ok) throw new Error("Failed to update bill session.");
-                    console.log("Cambios sincronizados al enlace");
                     showToast("Cambios sincronizados al enlace");
                     saveState(); // Save locally with merged data
                     
@@ -534,7 +607,6 @@
                     const data = await response.json();
                     state.collabId = data.uuid; 
                     state.saved = false; // Mark unsaved so history catches the collabId
-                    showToast("¡Enlace generado! Cópialo abajo.");
                     saveState();
                     
                     // Auto-update history record if it was already saved BEFORE linking
@@ -545,18 +617,15 @@
                 
                 // Construct the URL pointing to the shared HTML file
                 const shareUrl = window.location.origin + '/shared_bill/' + state.collabId;
-
+                els.collabLinkInput.value = shareUrl;
+                els.collabLinkContainer.classList.remove('hidden');
                 hideLoading();
-
-                // Attempt to share
-                const shareData = {
-                    title: 'Dividir Cuenta Splitio',
-                    text: 'Entra a este enlace y selecciona qué has comido: ',
-                    url: shareUrl
-                };
+                renderCollabUI();
+                startCollabPolling();
+                showToast("¡Enlace generado! Cópialo abajo.");
             } catch (error) {
                 console.error("Error:", error);
-                alert("Hubo un error al procesar el enlace.");
+                showError("Hubo un error al procesar el enlace. Inténtalo de nuevo.");
                 hideLoading();
             }
         }
@@ -584,7 +653,7 @@
                 els.collabLinkContainer.classList.remove('hidden');
                 
                 // Update Button to "Sync"
-                els.collabBtnText.textContent = "Sobreescribir Cambios al Enlace";
+                els.collabBtnText.textContent = "Sincronizar Cambios al Enlace";
                 els.collabBtnIcon.className = "fa-solid fa-rotate";
                 els.collabMainBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 els.collabMainBtn.classList.add('bg-indigo-600', 'hover:bg-indigo-700');
@@ -601,11 +670,19 @@
             }
         }
 
+        // --- Helper Logic ---
+        function isItemAssignedToAll(item, peopleArray) {
+            if (!peopleArray || peopleArray.length === 0) return false;
+            const totalPeople = peopleArray.length;
+            const uniqueAssignees = new Set(item.assignedTo);
+            return uniqueAssignees.size === totalPeople && item.assignedTo.length === totalPeople;
+        }
+
         // --- History Logic ---
 
         function saveBillToHistory(silent = false) {
             if (state.items.length === 0 && state.people.length === 0) {
-                if (!silent) alert("La cuenta está vacía.");
+                if (!silent) showError("La cuenta está vacía. Añade personas y artículos primero.");
                 return;
             }
 
@@ -623,14 +700,16 @@
                 grandTotal += totalCost;
                 
                 const totalClaims = item.assignedTo.length;
+                const isAssignedToAll = isItemAssignedToAll(item, state.people);
+                
                 if (totalClaims > 0) {
-                    if (totalClaims <= item.qty) {
-                        const costPerClaim = item.price;
+                    if (isAssignedToAll || totalClaims > item.qty) {
+                        const costPerClaim = totalCost / totalClaims;
                         item.assignedTo.forEach(pid => { 
                             if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
                         });
                     } else {
-                        const costPerClaim = totalCost / totalClaims;
+                        const costPerClaim = item.price;
                         item.assignedTo.forEach(pid => { 
                             if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
                         });
@@ -736,15 +815,16 @@
                     const totalCost = item.price * item.qty;
                     grandTotal += totalCost;
                     const totalClaims = item.assignedTo.length;
+                    const isAssignedToAll = isItemAssignedToAll(item, serverState.people);
 
                     if (totalClaims > 0) {
-                        if (totalClaims <= item.qty) {
-                            const costPerClaim = item.price;
+                        if (isAssignedToAll || totalClaims > item.qty) {
+                            const costPerClaim = totalCost / totalClaims;
                             item.assignedTo.forEach(pid => { 
                                 if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
                             });
                         } else {
-                            const costPerClaim = totalCost / totalClaims;
+                            const costPerClaim = item.price;
                             item.assignedTo.forEach(pid => { 
                                 if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
                             });
@@ -798,7 +878,7 @@
                 showToast("Sincronización completa");
             } catch (error) {
                 console.error("Error syncing history:", error);
-                alert("Hubo un error al sincronizar la cuenta.");
+                showError("Hubo un error al sincronizar la cuenta. Inténtalo de nuevo.");
                 // Reset button if error (on success, renderHistory naturally resets it)
                 if (syncBtn) {
                     syncBtn.disabled = false;
@@ -820,19 +900,20 @@
         }
 
         function deleteBill(billId) {
-            if(confirm("¿Eliminar esta cuenta del historial?")) {
-                history = history.filter(h => h.id !== billId);
-                if (expandedBillId === billId) expandedBillId = null;
-                
-                // If it's the current active bill, reset the link internally
-                if (state.historyId === billId) {
-                    state.historyId = null;
-                    state.saved = false;
-                    saveState();
+            showConfirmModal(
+                '¿Eliminar cuenta?',
+                'Esta cuenta se borrará del historial permanentemente.',
+                () => {
+                    history = history.filter(h => h.id !== billId);
+                    if (expandedBillId === billId) expandedBillId = null;
+                    if (state.historyId === billId) {
+                        state.historyId = null;
+                        state.saved = false;
+                        saveState();
+                    }
+                    saveHistory();
                 }
-                
-                saveHistory();
-            }
+            );
         }
 
         function toggleAccordion(billId) {
@@ -997,7 +1078,7 @@
                     processBackendResponse(data);
                 } catch (error) {
                     console.error('Error:', error);
-                    alert("Fallo al analizar el recibo. " + error.message);
+                    showError("No se pudo analizar el recibo. Por favor, inténtalo de nuevo o añade los artículos manualmente.");
                 } finally {
                     hideLoading();
                     input.value = ''; 
@@ -1007,7 +1088,7 @@
 
         function processBackendResponse(data) {
             if (!data || !Array.isArray(data.items)) {
-                alert("Formato de respuesta inválido.");
+                showError("Formato de respuesta inválido. Intenta de nuevo.");
                 return;
             }
             const items = data.items;
@@ -1037,7 +1118,15 @@
 
         function addPerson() {
             const name = els.personInput.value.trim();
-            if (!name) return;
+            if (!name) {
+                els.personInput.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+                els.personInput.placeholder = 'Escribe un nombre primero';
+                setTimeout(() => {
+                    els.personInput.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+                    els.personInput.placeholder = 'Nombre (ej. Alicia)';
+                }, 2000);
+                return;
+            }
             const newPerson = { id: generateId(), name: name };
             state.people.push(newPerson);
             els.personInput.value = '';
@@ -1067,10 +1156,20 @@
             const price = parseFloat(els.itemPrice.value);
             const qty = parseInt(els.itemQty.value);
 
-            if (!name || isNaN(price) || isNaN(qty) || qty < 1) {
-                alert("Datos inválidos.");
-                return;
+            let hasError = false;
+            if (!name) {
+                els.itemName.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+                hasError = true;
+            } else {
+                els.itemName.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
             }
+            if (isNaN(price) || price < 0) {
+                els.itemPrice.classList.add('border-red-400', 'ring-1', 'ring-red-300');
+                hasError = true;
+            } else {
+                els.itemPrice.classList.remove('border-red-400', 'ring-1', 'ring-red-300');
+            }
+            if (hasError) return;
 
             const newItem = {
                 id: generateId(),
@@ -1222,7 +1321,7 @@
                 }
             } catch (err) {
                 console.error(err);
-                alert("Error al generar imagen.");
+                showError("Error al generar la imagen del recibo.");
             } finally {
                 hideLoading();
             }
@@ -1243,12 +1342,21 @@
         function renderPeople() {
             els.peopleList.innerHTML = '';
             els.payerSelect.innerHTML = '<option value="">¿Quién pagó?</option>';
+            const payerContainer = document.getElementById('payerButtonsContainer');
+            const emptyPayerMsg = document.getElementById('emptyPayerMsg');
+            // Remove only payer buttons (not the emptyPayerMsg paragraph)
+            Array.from(payerContainer.querySelectorAll('button')).forEach(b => b.remove());
+            
             if (state.people.length === 0) {
                 els.emptyPeopleMsg.style.display = 'block';
+                if (emptyPayerMsg) emptyPayerMsg.style.display = 'block';
                 return;
             }
             els.emptyPeopleMsg.style.display = 'none';
+            if (emptyPayerMsg) emptyPayerMsg.style.display = 'none';
+
             state.people.forEach(person => {
+                // People chips
                 const chip = document.createElement('div');
                 chip.className = 'bg-gray-100 border border-gray-200 text-gray-800 rounded-full px-3 py-1 text-sm flex items-center gap-2 animate-fade-in';
                 chip.innerHTML = `
@@ -1256,11 +1364,30 @@
                     <button onclick="removePerson('${person.id}')" class="text-gray-400 hover:text-red-500 rounded-full w-4 h-4 flex items-center justify-center"><i class="fa-solid fa-times text-xs"></i></button>
                 `;
                 els.peopleList.appendChild(chip);
+
+                // Hidden select option
                 const option = document.createElement('option');
                 option.value = person.id;
                 option.textContent = person.name;
                 if (person.id === state.payerId) option.selected = true;
                 els.payerSelect.appendChild(option);
+
+                // Payer button
+                const isPayer = person.id === state.payerId;
+                const btn = document.createElement('button');
+                btn.className = `flex items-center gap-2 px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all active:scale-95 ${
+                    isPayer 
+                        ? 'bg-yellow-50 border-yellow-400 text-yellow-700 shadow-sm' 
+                        : 'bg-gray-50 border-gray-200 text-gray-500 hover:border-gray-300'
+                }`;
+                btn.innerHTML = isPayer
+                    ? `<i class="fa-solid fa-credit-card text-yellow-500"></i> ${person.name}`
+                    : `<i class="fa-regular fa-circle text-gray-300"></i> ${person.name}`;
+                btn.onclick = () => {
+                    // Toggle off if already selected
+                    updatePayer(person.id === state.payerId ? '' : person.id);
+                };
+                payerContainer.appendChild(btn);
             });
         }
 
@@ -1434,28 +1561,29 @@
             const personTotals = {}; 
             let grandTotal = 0;
             let unclaimedTotal = 0;
-
+            
             state.people.forEach(p => personTotals[p.id] = 0);
-
+            
             state.items.forEach(item => {
                 const totalCost = item.price * item.qty;
                 grandTotal += totalCost;
                 
                 const totalClaims = item.assignedTo.length;
+                const isAssignedToAll = isItemAssignedToAll(item, state.people);
 
                 if (totalClaims === 0) {
                     unclaimedTotal += totalCost;
-                } else if (totalClaims <= item.qty) {
+                } else if (isAssignedToAll || totalClaims > item.qty) {
+                    const costPerClaim = totalCost / totalClaims;
+                    item.assignedTo.forEach(pid => { 
+                        if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
+                    });
+                } else {
                     const costPerClaim = item.price;
                     item.assignedTo.forEach(pid => { 
                         if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
                     });
                     unclaimedTotal += (item.qty - totalClaims) * item.price;
-                } else {
-                    const costPerClaim = totalCost / totalClaims;
-                    item.assignedTo.forEach(pid => { 
-                        if (personTotals[pid] !== undefined) personTotals[pid] += costPerClaim;
-                    });
                 }
             });
 
@@ -1470,14 +1598,12 @@
                 els.payerBadge.classList.add('hidden');
                 els.payerBadge.classList.remove('inline-block');
             }
-
             els.receiptContent.innerHTML = '';
             if (state.people.length === 0 && state.items.length === 0) {
                 els.receiptContent.innerHTML = `<div class="text-center text-gray-400 italic text-sm py-4">Añade personas y artículos para ver la división.</div>`;
                 els.settlementSection.classList.add('hidden');
                 return;
             }
-
             state.people.forEach(person => {
                 const amount = personTotals[person.id];
                 const personItems = state.items.filter(i => i.assignedTo.includes(person.id));
@@ -1486,33 +1612,55 @@
                 
                 let detailsHtml = '';
                 if (personItems.length > 0) {
-                    detailsHtml = `<div class="mt-1 pl-2 border-l-2 border-gray-100 space-y-1">${personItems.map(i => {
+                    const groupedItems = {};
+                    personItems.forEach(i => {
                         const totalClaims = i.assignedTo.length;
+                        const isAssignedToAll = isItemAssignedToAll(i, state.people);
                         const myCount = i.assignedTo.filter(id => id === person.id).length;
                         
                         let share = 0;
-                        if (totalClaims <= i.qty) {
-                            share = myCount * i.price;
-                        } else {
+                        if (isAssignedToAll || totalClaims > i.qty) {
                             share = myCount * ((i.price * i.qty) / totalClaims);
+                        } else {
+                            share = myCount * i.price;
                         }
                         
-                        const portionText = myCount > 1 ? `	(x${myCount})` :`(x1)`;
+                        let displayName = i.name;
+                        if (isAssignedToAll && i.qty > 1) {
+                            displayName = `${i.name} (x${i.qty})`;
+                        }
+                        
+                        const key = `${displayName}|${i.price}`;
+                        if (!groupedItems[key]) {
+                            groupedItems[key] = { name: displayName, share: 0, count: 0, isAssignedToAll: isAssignedToAll };
+                        }
+                        groupedItems[key].share += share;
+                        groupedItems[key].count += myCount;
+                    });
 
-                        return `<div class="flex justify-between text-xs text-gray-500"><span class="truncate w-3/4">${i.name} ${portionText}</span><span>${formatCurrency(share)}</span></div>`
-                    }).join('')}</div>`;
+                    detailsHtml = `
+                        <div class="mt-1 pl-2 border-l-2 border-gray-100 space-y-1">
+                            ${Object.values(groupedItems).map(g => {
+                                const portionText = (!g.isAssignedToAll && g.count > 1) ? `(x${g.count})` : '';
+                                
+                                return `<div class="flex justify-between text-xs text-gray-500">
+                                            <span class="truncate w-3/4">${g.name} ${portionText}</span>
+                                            <span>${formatCurrency(g.share)}</span>
+                                        </div>`
+                            }).join('')}
+                        </div>
+                    `;
                 }
+
                 div.innerHTML = `<div class="flex justify-between items-center mb-1"><span class="font-bold text-gray-800">${person.name}</span><span class="font-mono font-bold text-lg ${amount > 0 ? 'text-primary' : 'text-gray-400'}">${formatCurrency(amount)}</span></div>${detailsHtml}`;
                 els.receiptContent.appendChild(div);
             });
-
             if (unclaimedTotal > 0.01) {
                 const div = document.createElement('div');
                 div.className = 'mt-4 bg-orange-50 p-3 rounded-lg border border-orange-100';
                 div.innerHTML = `<div class="flex justify-between items-center text-orange-700 font-bold text-sm"><span><i class="fa-solid fa-circle-exclamation mr-1"></i> Artículos Sin Asignar</span><span>${formatCurrency(unclaimedTotal)}</span></div>`;
                 els.receiptContent.appendChild(div);
             }
-
             if (payer) {
                 els.settlementSection.classList.remove('hidden');
                 els.settlementList.innerHTML = '';
@@ -1559,8 +1707,46 @@
             renderCollabUI();
         }
 
+        // --- Auto-Polling for Collaborative Sync ---
+        let _pollInterval = null;
+
+        async function pollForCollabChanges() {
+            if (!state.collabId) return;
+            try {
+                const response = await fetch(`/api/bills/${state.collabId}`);
+                if (!response.ok) return;
+                const serverState = await response.json();
+                
+                // Check if any assignedTo arrays differ from local state
+                let hasDiff = false;
+                serverState.items.forEach(serverItem => {
+                    const localItem = state.items.find(i => i.id === serverItem.id);
+                    if (localItem && JSON.stringify(localItem.assignedTo.sort()) !== JSON.stringify([...serverItem.assignedTo].sort())) {
+                        hasDiff = true;
+                    }
+                });
+                
+                if (hasDiff) {
+                    els.collabSyncNotice.classList.remove('hidden');
+                } else {
+                    els.collabSyncNotice.classList.add('hidden');
+                }
+            } catch (e) {
+                // Silent fail — don't bother the user for a background check
+            }
+        }
+
+        function startCollabPolling() {
+            if (_pollInterval) clearInterval(_pollInterval);
+            if (state.collabId) {
+                _pollInterval = setInterval(pollForCollabChanges, 30000); // every 30s
+                pollForCollabChanges(); // immediate first check
+            }
+        }
+
         render();
         renderHistory();
+        startCollabPolling();
     </script>
 </body>
 </html>
