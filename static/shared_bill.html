@@ -193,128 +193,78 @@
                     throw new Error('Bill not found on server');
                 }
                 
+                // Items arrive already normalized from the server (units expanded,
+                // shared-by-all items locked), so no client-side normalization is needed.
                 billState = await response.json();
-                
-                // Normalizamos los items para desglosarlos de forma equitativa
-                normalizeBillItems();
-                
                 initializeView();
+                startPolling();
             } catch (error) {
                 els.loadingState.innerHTML = "Error al cargar la cuenta. Es posible que el enlace haya expirado.";
                 console.error(error);
             }
         }
 
-        async function syncToBackend() {
-            // Show loading status
-            els.syncStatus.classList.remove('opacity-0');
-            els.syncStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
-            els.syncStatus.className = "text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-full";
-            
+        // Persist a single claim/unclaim to the server (no full-document overwrite,
+        // so guests can't clobber each other or the organizer's added items).
+        async function selectOnServer(itemId, claimed) {
+            flashSaveStatus('saving');
             try {
-                // Send updated state to the FastAPI backend
-                const response = await fetch(`/api/bills/${billId}/update`, {
+                const response = await fetch(`/api/bills/${billId}/select`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(billState)
+                    body: JSON.stringify({ itemId, personId: currentUser.id, claimed })
                 });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to save to server');
-                }
+                if (!response.ok) throw new Error('select failed');
+                flashSaveStatus('saved');
+                return true;
+            } catch (error) {
+                flashSaveStatus('error');
+                return false;
+            }
+        }
 
-                // Show success status
+        function flashSaveStatus(kind) {
+            if (kind === 'saving') {
+                els.syncStatus.classList.remove('opacity-0');
+                els.syncStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+                els.syncStatus.className = "text-[10px] font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-full";
+            } else if (kind === 'saved') {
                 els.syncStatus.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Guardado';
                 els.syncStatus.className = "text-[10px] font-bold text-green-500 bg-green-50 px-2 py-1 rounded-full";
-                
-                // Fade out the badge after 2 seconds
-                setTimeout(() => {
-                    els.syncStatus.classList.add('opacity-0');
-                }, 2000);
-                
-            } catch (error) {
-                // Show error status
+                setTimeout(() => els.syncStatus.classList.add('opacity-0'), 2000);
+            } else {
                 els.syncStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Error';
                 els.syncStatus.className = "text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded-full";
             }
         }
 
-        // ==========================================
-        // DATA NORMALIZATION (SMART AUTO-SPLIT)
-        // ==========================================
-        
-        function generateId() {
-            return Math.random().toString(36).substr(2, 9);
+        // --- Live polling: reflect others' selections, added items, and closing ---
+        let _pollInterval = null;
+        let _selectInFlight = 0;
+
+        async function pollBill() {
+            if (_selectInFlight > 0) return; // don't fight an optimistic update mid-flight
+            try {
+                const response = await fetch(`/api/bills/${billId}`);
+                if (!response.ok) return;
+                const fresh = await response.json();
+                if (JSON.stringify(fresh) !== JSON.stringify(billState)) {
+                    billState = fresh;
+                    if (currentUser) { renderItems(); renderReceipt(); }
+                    else renderPeopleSelection();
+                }
+                if (billState.status === 'closed') stopPolling();
+            } catch (e) { /* silent background check */ }
         }
 
-        function normalizeBillItems() {
-            let hasChanges = false;
-            const expandedItems = [];
-            const totalPeople = billState.people.length;
-            
-            billState.items.forEach(item => {
-                const uniqueAssignees = new Set(item.assignedTo);
-                const isAssignedToAll = totalPeople > 0 && uniqueAssignees.size === totalPeople && item.assignedTo.length === totalPeople;
-                
-                if (isAssignedToAll) {
-                    item.isLocked = true;
-                    expandedItems.push(item);
-                } else if (item.qty > 1) {
-                    // Only expand if the item hasn't already been expanded on a previous visit
-                    // (expanded items have ids like "originalId_0", "originalId_1")
-                    const alreadyExpanded = billState.items.some(i => i.id.startsWith(item.id + '_'));
-                    if (alreadyExpanded) {
-                        item.isLocked = false;
-                        expandedItems.push(item);
-                        return;
-                    }
-                    hasChanges = true;
-                    const units = Array.from({ length: item.qty }, (_, i) => ({
-                        id: item.id + '_' + i,
-                        name: item.name,
-                        price: item.price,
-                        qty: 1,
-                        assignedTo: [],
-                        isLocked: false
-                    }));
+        function startPolling() {
+            stopPolling();
+            _pollInterval = setInterval(pollBill, 8000);
+        }
 
-                    const assignCount = item.assignedTo.length;
-                    
-                    if (assignCount > 0) {
-                        if (item.qty % assignCount === 0) {
-                            const itemsPerUser = item.qty / assignCount;
-                            let unitIdx = 0;
-                            item.assignedTo.forEach(uid => {
-                                for (let i = 0; i < itemsPerUser; i++) {
-                                    units[unitIdx++].assignedTo.push(uid);
-                                }
-                            });
-                        } else if (assignCount % item.qty === 0) {
-                            const usersPerItem = assignCount / item.qty;
-                            let userIdx = 0;
-                            for (let i = 0; i < item.qty; i++) {
-                                for (let j = 0; j < usersPerItem; j++) {
-                                    units[i].assignedTo.push(item.assignedTo[userIdx++]);
-                                }
-                            }
-                        } else {
-                            units.forEach(u => u.assignedTo = [...item.assignedTo]);
-                        }
-                    }
-                    
-                    expandedItems.push(...units);
-                } else {
-                    item.isLocked = false;
-                    expandedItems.push(item);
-                }
-            });
-            
-            if (hasChanges) {
-                billState.items = expandedItems;
-                syncToBackend();
-            } else {
-                billState.items = expandedItems;
-            }
+        function stopPolling() {
+            if (_pollInterval) clearInterval(_pollInterval);
+            _pollInterval = null;
         }
 
         // ==========================================
@@ -374,24 +324,40 @@
             renderReceipt(); // Clear personal card and "Tú" badge
         }
 
-        function toggleItem(itemId) {
+        async function toggleItem(itemId) {
+            if (billState.status === 'closed') return;
             const item = billState.items.find(i => i.id === itemId);
-            if (!item || item.isLocked) return; // Locked items assigned to all cannot be toggled
+            if (!item || item.isLocked) return; // Items shared by everyone can't be toggled
 
-            // Add or remove current user locally
-            if (item.assignedTo.includes(currentUser.id)) {
-                item.assignedTo = item.assignedTo.filter(id => id !== currentUser.id);
-            } else {
-                item.assignedTo.push(currentUser.id);
-            }
-            
+            const claimed = !item.assignedTo.includes(currentUser.id);
+
+            // Optimistic local update for instant feedback.
+            if (claimed) item.assignedTo.push(currentUser.id);
+            else item.assignedTo = item.assignedTo.filter(id => id !== currentUser.id);
             renderItems();
             renderReceipt();
-            syncToBackend(); // Auto-save on every click to backend
+
+            // Persist just this claim; revert if the server rejects it.
+            _selectInFlight++;
+            const ok = await selectOnServer(itemId, claimed);
+            _selectInFlight--;
+            if (!ok) {
+                if (claimed) item.assignedTo = item.assignedTo.filter(id => id !== currentUser.id);
+                else item.assignedTo.push(currentUser.id);
+                renderItems();
+                renderReceipt();
+            }
         }
 
         function renderItems() {
             els.collabItemsList.innerHTML = '';
+
+            if (billState.status === 'closed') {
+                const banner = document.createElement('div');
+                banner.className = 'mb-4 bg-gray-100 border border-gray-200 rounded-xl p-3 flex items-center gap-2 text-xs text-gray-600 font-semibold';
+                banner.innerHTML = '<i class="fa-solid fa-lock text-gray-400"></i> La cuenta está cerrada. Tu selección es definitiva.';
+                els.collabItemsList.appendChild(banner);
+            }
 
             const lockedItems = billState.items.filter(i => i.isLocked);
             const activeItems = billState.items.filter(i => !i.isLocked);
@@ -472,11 +438,12 @@
                 return count > 1 ? `${name} (x${count})` : name;
             }).join(', ');
 
+            const editable = billState.status !== 'closed';
             const card = document.createElement('div');
-            card.className = `cursor-pointer transition-all duration-200 rounded-xl p-4 border-2 shadow-sm relative overflow-hidden active:scale-[0.98] ${
+            card.className = `${editable ? 'cursor-pointer active:scale-[0.98]' : ''} transition-all duration-200 rounded-xl p-4 border-2 shadow-sm relative overflow-hidden ${
                 isMine ? 'bg-indigo-50 border-primary ring-2 ring-primary ring-opacity-20' : 'bg-white border-gray-100 hover:border-gray-200'
             }`;
-            card.onclick = () => toggleItem(item.id);
+            if (editable) card.onclick = () => toggleItem(item.id);
 
             let usersHtml = '<span class="text-[10px] text-gray-400 italic">Nadie lo ha marcado aún</span>';
             if (isShared) {
@@ -503,8 +470,9 @@
         }
 
         function renderCollabGroupItems(items, parentContainer) {
+            const editable = billState.status !== 'closed';
             const firstItem = items[0];
-            
+
             const container = document.createElement('div');
             container.className = 'bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mb-3';
             
@@ -531,10 +499,10 @@
                 }).join(', ');
 
                 const row = document.createElement('div');
-                row.className = `p-3 cursor-pointer transition-all duration-200 flex items-center justify-between gap-2 ${
-                    isMine ? 'bg-indigo-50/50' : 'hover:bg-gray-50 active:bg-gray-100'
+                row.className = `p-3 ${editable ? 'cursor-pointer active:bg-gray-100' : ''} transition-all duration-200 flex items-center justify-between gap-2 ${
+                    isMine ? 'bg-indigo-50/50' : 'hover:bg-gray-50'
                 }`;
-                row.onclick = () => toggleItem(item.id);
+                if (editable) row.onclick = () => toggleItem(item.id);
 
                 let statusHtml = '<span class="text-[10px] text-gray-400 italic text-right block w-full">Sin marcar</span>';
                 if (isShared) {
@@ -715,6 +683,13 @@
                 els.settlementSection.classList.add('hidden');
             }
         }
+
+        // Refresh as soon as the tab becomes visible/focused again, so returning to
+        // the page always shows the latest selections without waiting for the timer.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && billState) pollBill();
+        });
+        window.addEventListener('focus', () => { if (billState) pollBill(); });
 
         // Initialize App
         fetchBillData();

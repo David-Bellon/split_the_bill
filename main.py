@@ -8,9 +8,10 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from openai import OpenAI
 import os
+import re as _re
+import tempfile
 from dotenv import load_dotenv
 import json
-import pandas as pd
 import uuid
 
 # Load environment variables
@@ -65,6 +66,16 @@ class ReceiptResponse(BaseModel):
 
 class ReceiptRequest(BaseModel):
     image: str  # Base64 encoded image
+
+class SelectRequest(BaseModel):
+    itemId: str
+    personId: str
+    claimed: bool  # desired state: True = claim, False = unclaim (idempotent)
+
+class AddItemRequest(BaseModel):
+    name: str
+    price: float
+    qty: int = 1
 
 @app.get("/")
 async def read_root():
@@ -149,9 +160,7 @@ async def process_receipt(request: Request, receipt_request: ReceiptRequest):
             content={"detail": f"Error processing receipt: {str(e)}"}
         )
 
-# --- Collaborative Link Endpoints ---
-
-import re as _re
+# --- Collaborative Link: storage helpers ---
 
 def _validate_bill_id(bill_id: str) -> str:
     """Validates that bill_id is a proper UUID to prevent path traversal attacks."""
@@ -159,40 +168,202 @@ def _validate_bill_id(bill_id: str) -> str:
         raise HTTPException(status_code=400, detail="Invalid bill ID format.")
     return bill_id
 
+def _bill_path(bill_id: str) -> str:
+    return os.path.join(BILLS_DIR, f"{bill_id}.json")
+
+def _atomic_write_json(filepath: str, data: Any) -> None:
+    """Write JSON via a temp file + os.replace so concurrent writes can't corrupt the file."""
+    directory = os.path.dirname(filepath) or "."
+    fd, tmp = tempfile.mkstemp(dir=directory, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+        os.replace(tmp, filepath)
+    except Exception:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
+
+def _load_bill(bill_id: str) -> Dict[str, Any]:
+    """Validate the id, ensure the bill exists, and return its stored state."""
+    _validate_bill_id(bill_id)
+    filepath = _bill_path(bill_id)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Bill not found")
+    with open(filepath, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+# --- Item normalization (runs once, server-side, at publish time) ---
+
+def _is_assigned_to_all(item: Dict[str, Any], people: List[Dict[str, Any]]) -> bool:
+    """True when the item is claimed exactly once by every person in the bill."""
+    if not people:
+        return False
+    total = len(people)
+    assigned = item.get("assignedTo", []) or []
+    return len(set(assigned)) == total and len(assigned) == total
+
+def _expand_and_lock_items(state: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Expand multi-quantity items into individual units and lock all-assigned items.
+
+    Doing this once at publish time means guests only ever toggle single
+    assignments afterwards, which removes the fragile "first guest rewrites the
+    whole document" path and the client-side id-prefix expansion hack.
+    """
+    people = state.get("people", []) or []
+    items = state.get("items", []) or []
+    result: List[Dict[str, Any]] = []
+
+    for item in items:
+        assigned = list(item.get("assignedTo", []) or [])
+
+        # Items shared by everyone stay as a single locked line.
+        if _is_assigned_to_all(item, people):
+            item["isLocked"] = True
+            result.append(item)
+            continue
+
+        qty = int(item.get("qty", 1) or 1)
+        already_expanded = any(
+            i.get("id", "").startswith(item["id"] + "_") for i in items
+        )
+
+        if qty > 1 and not already_expanded:
+            units = [
+                {
+                    "id": f'{item["id"]}_{i}',
+                    "name": item["name"],
+                    "price": item["price"],
+                    "qty": 1,
+                    "assignedTo": [],
+                    "isLocked": False,
+                }
+                for i in range(qty)
+            ]
+
+            # Distribute any pre-assigned people across the freshly created units,
+            # mirroring the previous client-side normalization.
+            assign_count = len(assigned)
+            if assign_count > 0:
+                if qty % assign_count == 0:
+                    items_per_user = qty // assign_count
+                    idx = 0
+                    for uid in assigned:
+                        for _ in range(items_per_user):
+                            units[idx]["assignedTo"].append(uid)
+                            idx += 1
+                elif assign_count % qty == 0:
+                    users_per_item = assign_count // qty
+                    uidx = 0
+                    for i in range(qty):
+                        for _ in range(users_per_item):
+                            units[i]["assignedTo"].append(assigned[uidx])
+                            uidx += 1
+                else:
+                    for u in units:
+                        u["assignedTo"] = list(assigned)
+
+            result.extend(units)
+        else:
+            item["isLocked"] = False
+            result.append(item)
+
+    return result
+
+# --- Collaborative Link Endpoints ---
+
 @app.post("/api/bills/create")
 async def create_bill(bill_state: Dict[str, Any]):
-    """Creates a new bill session and returns a UUID."""
+    """Publish a draft to the server. The server copy becomes the single source
+    of truth: items are normalized once and the bill is born `live`."""
     bill_id = str(uuid.uuid4())
-    filepath = os.path.join(BILLS_DIR, f"{bill_id}.json")
-    
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(bill_state, f, ensure_ascii=False)
-        
+    bill_state["status"] = "live"
+    bill_state["items"] = _expand_and_lock_items(bill_state)
+    _atomic_write_json(_bill_path(bill_id), bill_state)
     return {"uuid": bill_id}
 
 @app.get("/api/bills/{bill_id}")
 async def get_bill(bill_id: str):
-    """Retrieves an existing bill session by UUID."""
-    _validate_bill_id(bill_id)
-    filepath = os.path.join(BILLS_DIR, f"{bill_id}.json")
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Bill not found")
-        
-    with open(filepath, "r", encoding="utf-8") as f:
-        return json.load(f)
+    """Retrieve a bill session by UUID (used for polling and the guest view)."""
+    return _load_bill(bill_id)
+
+@app.post("/api/bills/{bill_id}/select")
+async def select_item(bill_id: str, req: SelectRequest):
+    """Toggle a single person's claim on a single item.
+
+    This replaces guests overwriting the whole document on every tap, so guests
+    can no longer clobber each other or the organizer's added items.
+    """
+    state = _load_bill(bill_id)
+    if state.get("status") == "closed":
+        raise HTTPException(status_code=409, detail="This bill is closed.")
+
+    if not any(p.get("id") == req.personId for p in state.get("people", [])):
+        raise HTTPException(status_code=400, detail="Unknown person for this bill.")
+
+    item = next((i for i in state.get("items", []) if i.get("id") == req.itemId), None)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Item not found")
+    if item.get("isLocked"):
+        raise HTTPException(status_code=409, detail="Item is shared by everyone and cannot be changed.")
+
+    assigned = item.setdefault("assignedTo", [])
+    if req.claimed:
+        if req.personId not in assigned:
+            assigned.append(req.personId)
+    else:
+        item["assignedTo"] = [p for p in assigned if p != req.personId]
+
+    _atomic_write_json(_bill_path(bill_id), state)
+    return {"status": "success", "assignedTo": item["assignedTo"]}
+
+@app.post("/api/bills/{bill_id}/items/add")
+async def add_item(bill_id: str, req: AddItemRequest):
+    """Organizer add-only: append a forgotten item after the bill is live.
+    Editing or deleting existing items is intentionally not supported."""
+    state = _load_bill(bill_id)
+    if state.get("status") == "closed":
+        raise HTTPException(status_code=409, detail="This bill is closed.")
+
+    new_id = uuid.uuid4().hex[:9]
+    qty = max(1, int(req.qty))
+
+    if qty > 1:
+        added = [
+            {
+                "id": f"{new_id}_{i}",
+                "name": req.name,
+                "price": req.price,
+                "qty": 1,
+                "assignedTo": [],
+                "isLocked": False,
+            }
+            for i in range(qty)
+        ]
+    else:
+        added = [
+            {
+                "id": new_id,
+                "name": req.name,
+                "price": req.price,
+                "qty": 1,
+                "assignedTo": [],
+                "isLocked": False,
+            }
+        ]
+
+    state.setdefault("items", []).extend(added)
+    _atomic_write_json(_bill_path(bill_id), state)
+    return {"status": "success", "items": added}
 
 @app.post("/api/bills/{bill_id}/update")
 async def update_bill(bill_id: str, bill_state: Dict[str, Any]):
-    """Updates an existing bill session with new user selections."""
-    _validate_bill_id(bill_id)
-    filepath = os.path.join(BILLS_DIR, f"{bill_id}.json")
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Bill not found")
-        
-    # Write the updated state back to the JSON file
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(bill_state, f, ensure_ascii=False)
-        
+    """DEPRECATED full-document overwrite. Kept only until both frontends migrate
+    to /select and /items/add; remove once nothing calls it."""
+    state = _load_bill(bill_id)
+    if state.get("status") == "closed":
+        raise HTTPException(status_code=409, detail="This bill is closed.")
+    _atomic_write_json(_bill_path(bill_id), bill_state)
     return {"status": "success"}
 
 # --- Prompts ---
