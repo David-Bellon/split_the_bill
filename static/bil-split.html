@@ -1398,18 +1398,43 @@
 
         async function shareReceipt() {
             showLoading("Generando Imagen");
-            const originalShadow = els.receiptCard.style.boxShadow;
-            els.receiptCard.style.boxShadow = 'none';
-            els.receiptCard.style.backgroundColor = '#ffffff';
+            const card = els.receiptCard;
+            const originalShadow = card.style.boxShadow;
+            const originalBg = card.style.backgroundColor;
+            card.style.boxShadow = 'none';
+            card.style.backgroundColor = '#ffffff';
 
             try {
-                const canvas = await html2canvas(els.receiptCard, {
-                    scale: 2,
+                // Browsers cap canvas size (iOS Safari is strictest: ~4096px per
+                // side and ~16.7M px total area). A fixed scale:2 overflows that on
+                // long bills, so the canvas gets clipped (missing rows) or silently
+                // downscaled (blurry). Compute the biggest scale that still fits.
+                const MAX_DIMENSION = 4096;
+                const MAX_AREA = 16777216; // 4096 * 4096
+                const cssW = Math.ceil(card.scrollWidth);
+                const cssH = Math.ceil(card.scrollHeight);
+                let scale = 2;
+                scale = Math.min(scale, MAX_DIMENSION / cssW, MAX_DIMENSION / cssH);
+                scale = Math.min(scale, Math.sqrt(MAX_AREA / (cssW * cssH)));
+                // Never below 1 unless the card itself is bigger than the cap at 1x
+                // (an extremely long bill); then downscale is unavoidable but the
+                // whole receipt still fits without being cut off.
+                if (cssW <= MAX_DIMENSION && cssH <= MAX_DIMENSION) {
+                    scale = Math.max(scale, 1);
+                }
+
+                const canvas = await html2canvas(card, {
+                    scale: scale,
                     backgroundColor: '#ffffff',
                     logging: false,
-                    useCORS: true
+                    useCORS: true,
+                    width: cssW,
+                    height: cssH,
+                    windowWidth: cssW,
+                    windowHeight: cssH,
+                    scrollX: 0,
+                    scrollY: 0
                 });
-                els.receiptCard.style.boxShadow = originalShadow;
 
                 if (window.Android && window.Android.shareImage) {
                     window.Android.shareImage(canvas.toDataURL('image/png'));
@@ -1432,6 +1457,8 @@
                 console.error(err);
                 showError("Error al generar la imagen del recibo.");
             } finally {
+                card.style.boxShadow = originalShadow;
+                card.style.backgroundColor = originalBg;
                 hideLoading();
             }
         }
