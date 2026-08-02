@@ -79,7 +79,15 @@ class AddItemRequest(BaseModel):
 
 @app.get("/")
 async def read_root():
+    return FileResponse("static/home.html")
+
+@app.get("/split")
+async def read_split():
     return FileResponse("static/bil-split.html")
+
+@app.get("/travel")
+async def read_travel():
+    return FileResponse("static/travel.html")
 
 @app.get("/shared_bill/{bill_id}")
 async def read_shared_bill():

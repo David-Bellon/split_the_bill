@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splitio</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZH07M1LR8N"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-ZH07M1LR8N', { cookie_domain: 'auto' });
+    </script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                    },
+                    colors: {
+                        primary: '#4F46E5', // Indigo 600
+                        secondary: '#10B981', // Emerald 500
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .list-enter {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen">
+
+    <main class="max-w-md mx-auto p-6 min-h-screen flex flex-col">
+        <header class="pt-10 pb-8 text-center">
+            <div class="w-16 h-16 bg-primary rounded-2xl shadow-lg mx-auto mb-4 flex items-center justify-center">
+                <i class="fa-solid fa-file-invoice-dollar text-white text-3xl"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900">Splitio</h1>
+            <p class="text-gray-500 mt-1 text-sm">¿Qué quieres hacer hoy?</p>
+        </header>
+
+        <div class="space-y-4 flex-1">
+            <a href="/split" class="block bg-white rounded-2xl shadow-sm p-5 list-enter hover:shadow-md transition-shadow active:scale-[0.98] transition-transform">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-calculator text-2xl text-primary"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            Dividir Cuenta
+                        </h2>
+                        <p class="text-sm text-gray-500 mt-0.5">Reparte la cuenta del restaurante entre amigos.</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-300 flex-shrink-0"></i>
+                </div>
+            </a>
+
+            <a href="/travel" class="block bg-white rounded-2xl shadow-sm p-5 list-enter hover:shadow-md transition-shadow active:scale-[0.98] transition-transform" style="animation-delay: 0.05s;">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <i class="fa-solid fa-plane-departure text-2xl text-secondary"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            Gastos de Viaje
+                            <span class="bg-emerald-100 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded-full">Nuevo</span>
+                        </h2>
+                        <p class="text-sm text-gray-500 mt-0.5">Lleva el registro de los gastos compartidos del viaje.</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right text-gray-300 flex-shrink-0"></i>
+                </div>
+            </a>
+        </div>
+
+        <footer class="py-8 text-center text-xs text-gray-400">
+            Splitio &middot; divide cuentas y gastos
+        </footer>
+    </main>
+</body>
+</html>

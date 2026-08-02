@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splitio - Gastos de Viaje</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZH07M1LR8N"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-ZH07M1LR8N', { cookie_domain: 'auto' });
+    </script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                    },
+                    colors: {
+                        primary: '#4F46E5', // Indigo 600
+                        secondary: '#10B981', // Emerald 500
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .list-enter {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen pb-24">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-md mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="/" class="w-9 h-9 flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100 hover:text-primary transition-colors" title="Inicio" aria-label="Inicio">
+                    <i class="fa-solid fa-house text-base"></i>
+                </a>
+                <h1 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <i class="fa-solid fa-plane-departure text-secondary"></i> Gastos de Viaje
+                </h1>
+            </div>
+            <div id="headerActions">
+                <button onclick="resetTrip()" class="text-sm text-gray-500 hover:text-red-500 transition-colors">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reiniciar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 relative">
+
+        <!-- VIEW: TRIP -->
+        <div id="view-trip" class="space-y-6">
+
+            <!-- Trip Name + Dates -->
+            <div class="bg-white rounded-xl shadow-sm p-4 space-y-3">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-pen text-gray-400"></i>
+                    <input type="text" id="tripNameInput" placeholder="Nombre del viaje (ej. Roma 2026)"
+                        class="flex-1 text-lg font-bold text-gray-800 outline-none placeholder-gray-300"
+                        onchange="updateTripName(this.value)">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Desde</label>
+                        <input type="date" id="startDateInput" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm text-gray-700 focus:border-primary outline-none"
+                            onchange="updateStartDate(this.value)">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Hasta</label>
+                        <input type="date" id="endDateInput" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-2.5 text-sm text-gray-700 focus:border-primary outline-none"
+                            onchange="updateEndDate(this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 1: Participants -->
+            <section class="bg-white rounded-2xl shadow-sm p-5 list-enter">
+                <h2 class="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-3 flex items-center gap-2">
+                    <span class="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">1</span>
+                    ¿Quiénes viajan?
+                </h2>
+
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="personInput" placeholder="Nombre (ej. Alicia)"
+                        class="flex-1 bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-primary focus:border-primary block p-3 outline-none transition-all"
+                        onkeypress="handleEnter(event, addPerson)">
+                    <button onclick="addPerson()"
+                        class="bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-4 py-2 transition-colors">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
+                </div>
+
+                <div id="peopleList" class="flex flex-wrap gap-2">
+                    <p class="text-gray-400 text-sm italic w-full text-center py-2" id="emptyPeopleMsg">Nadie añadido aún.</p>
+                </div>
+            </section>
+
+            <!-- Step 2: Expenses -->
+            <section class="bg-white rounded-2xl shadow-sm p-5 list-enter" id="expenseSection">
+                <h2 class="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-3 flex items-center gap-2">
+                    <span class="bg-purple-100 text-purple-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">2</span>
+                    ¿Qué gastos compartís?
+                </h2>
+
+                <!-- Expense Form -->
+                <div id="expenseForm" class="grid grid-cols-6 gap-2 mb-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <div class="col-span-6">
+                        <label class="block text-xs text-gray-500 mb-1">Concepto</label>
+                        <input type="text" id="expenseName" placeholder="ej. Hotel 2 noches" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm focus:border-primary outline-none"
+                            onkeypress="handleEnter(event, addExpense)">
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block text-xs text-gray-500 mb-1">Importe</label>
+                        <input type="number" id="expenseAmount" placeholder="0.00" step="0.01" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm focus:border-primary outline-none"
+                            onkeypress="handleEnter(event, addExpense)">
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block text-xs text-gray-500 mb-1">Categoría</label>
+                        <select id="expenseCategory" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm text-gray-700 focus:border-primary outline-none">
+                            <option value="transporte">Transporte</option>
+                            <option value="alojamiento">Alojamiento</option>
+                            <option value="comida">Comida</option>
+                            <option value="ocio">Ocio</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block text-xs text-gray-500 mb-1">Fecha</label>
+                        <input type="date" id="expenseDate" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm text-gray-700 focus:border-primary outline-none">
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block text-xs text-gray-500 mb-1">¿Quién pagó?</label>
+                        <select id="expensePayer" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm text-gray-700 focus:border-primary outline-none" onchange="setExpensePayer(this.value)">
+                            <option value="">Nadie</option>
+                        </select>
+                    </div>
+                    <div class="col-span-6">
+                        <label class="block text-xs text-gray-500 mb-1">¿Quién lo consume?</label>
+                        <div class="flex items-start gap-2">
+                            <div id="expenseAssigned" class="flex flex-wrap gap-1.5 flex-1"></div>
+                            <button type="button" onclick="toggleAssignAll()" id="assignAllBtn"
+                                class="text-[10px] font-bold text-primary hover:text-indigo-700 uppercase tracking-wide whitespace-nowrap pt-1">Todos</button>
+                        </div>
+                    </div>
+                    <div class="col-span-6">
+                        <label class="block text-xs text-gray-500 mb-1">Importe de cada uno</label>
+                        <div id="expenseShares" class="space-y-1.5"></div>
+                        <p class="text-[10px] text-gray-400 mt-1">Vacío = se reparte a partes iguales. Rellena para importes distintos (ej. en la cena, cada uno pagó lo suyo).</p>
+                    </div>
+                    <div class="col-span-6 flex gap-2">
+                        <button onclick="addExpense()" id="expenseSubmitBtn" class="flex-1 bg-gray-800 text-white rounded-lg py-2.5 font-medium shadow-md hover:bg-gray-900 active:scale-95 transition-all">
+                            <i class="fa-solid fa-plus"></i> Añadir Gasto
+                        </button>
+                        <button onclick="cancelEditExpense()" id="expenseCancelBtn" class="hidden bg-gray-200 text-gray-700 rounded-lg px-4 py-2.5 font-medium hover:bg-gray-300 active:scale-95 transition-all">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+
+                <div id="expensesList" class="space-y-4">
+                    <p class="text-gray-400 text-sm italic text-center py-4" id="emptyExpensesMsg">No hay gastos aún.</p>
+                </div>
+            </section>
+
+            <!-- Step 3: Summary + Settlement -->
+            <section class="list-enter">
+                <div class="bg-white rounded-2xl shadow-sm p-5">
+                    <h2 class="text-sm uppercase tracking-wide text-gray-500 font-semibold mb-3 flex items-center gap-2">
+                        <span class="bg-green-100 text-green-600 rounded-full w-6 h-6 flex items-center justify-center text-xs">3</span>
+                        Resumen del Viaje
+                    </h2>
+
+                    <div id="summaryContent">
+                        <div class="text-center text-gray-400 italic text-sm py-6">Añade personas y gastos para ver el resumen.</div>
+                    </div>
+
+                    <p class="text-center text-[10px] text-gray-400 mt-4"><i class="fa-solid fa-bookmark mr-1"></i>Se guarda automáticamente en Historial</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- VIEW: HISTORY -->
+        <div id="view-history" class="hidden space-y-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">Historial de Viajes</h2>
+                <div class="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-bold" id="historyCount">0 viajes</div>
+            </div>
+
+            <div id="historyList" class="space-y-4">
+                <div class="text-center text-gray-400 py-10">
+                    <i class="fa-solid fa-clock-rotate-left text-4xl mb-3 opacity-20"></i>
+                    <p>No hay viajes guardados aún.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 pb-safe">
+        <div class="max-w-md mx-auto flex justify-around items-center">
+            <button onclick="switchView('trip')" class="flex-1 py-3 text-center transition-colors text-primary" id="nav-trip">
+                <i class="fa-solid fa-route text-xl mb-1"></i>
+                <div class="text-[10px] font-bold">Viaje</div>
+            </button>
+            <button onclick="switchView('history')" class="flex-1 py-3 text-center transition-colors text-gray-400 hover:text-gray-600 relative" id="nav-hist">
+                <i class="fa-solid fa-clock-rotate-left text-xl mb-1"></i>
+                <div class="text-[10px] font-bold">Historial</div>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-60 hidden z-[80] flex items-center justify-center backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in">
+            <div class="text-center mb-5">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <i class="fa-solid fa-triangle-exclamation text-red-500 text-xl"></i>
+                </div>
+                <h3 class="font-bold text-gray-900 text-lg" id="confirmModalTitle">¿Estás seguro?</h3>
+                <p class="text-sm text-gray-500 mt-1" id="confirmModalMsg"></p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
+                <button id="confirmModalOkBtn" class="flex-1 py-2.5 bg-red-500 text-white rounded-xl font-semibold text-sm hover:bg-red-600 transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Banner (inline, dismissable) -->
+    <div id="errorBanner" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-[65] hidden w-full max-w-sm px-4">
+        <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm shadow-lg flex items-start gap-3">
+            <i class="fa-solid fa-circle-exclamation mt-0.5 flex-shrink-0"></i>
+            <span id="errorBannerMsg" class="flex-1"></span>
+            <button onclick="document.getElementById('errorBanner').classList.add('hidden')" class="flex-shrink-0 text-red-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
+    <div id="toast" class="fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-full text-sm shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none z-[60]">
+        Acción completada
+    </div>
+
+    <script>
+        // --- State Management ---
+        const CATEGORIES = {
+            transporte:  { label: 'Transporte',   icon: 'fa-car' },
+            alojamiento: { label: 'Alojamiento',  icon: 'fa-bed' },
+            comida:      { label: 'Comida',       icon: 'fa-utensils' },
+            ocio:        { label: 'Ocio',         icon: 'fa-martini-glass-citrus' },
+            otros:       { label: 'Otros',        icon: 'fa-tag' }
+        };
+
+        let state = {
+            tripName: '',
+            startDate: '',
+            endDate: '',
+            people: [],
+            expenses: [],
+            saved: false,
+            historyId: null
+        };
+
+        let history = [];
+        let currentView = 'trip';
+        let editingExpenseId = null;
+        let _expenseAssigned = [];
+        let _expensePaidBy = '';
+        let _expenseShares = {};
+
+        const todayISO = new Date().toISOString().slice(0, 10);
+
+        // Load State
+        const savedTrip = localStorage.getItem('fairshare_trip_state');
+        if (savedTrip) state = JSON.parse(savedTrip);
+
+        // Load History
+        const savedTripHistory = localStorage.getItem('fairshare_trip_history');
+        if (savedTripHistory) history = JSON.parse(savedTripHistory);
+
+        // --- DOM Elements ---
+        const els = {
+            tripNameInput: document.getElementById('tripNameInput'),
+            startDateInput: document.getElementById('startDateInput'),
+            endDateInput: document.getElementById('endDateInput'),
+            personInput: document.getElementById('personInput'),
+            peopleList: document.getElementById('peopleList'),
+            emptyPeopleMsg: document.getElementById('emptyPeopleMsg'),
+            expenseName: document.getElementById('expenseName'),
+            expenseAmount: document.getElementById('expenseAmount'),
+            expenseCategory: document.getElementById('expenseCategory'),
+            expenseDate: document.getElementById('expenseDate'),
+            expensePayer: document.getElementById('expensePayer'),
+            expenseAssigned: document.getElementById('expenseAssigned'),
+            expenseShares: document.getElementById('expenseShares'),
+            assignAllBtn: document.getElementById('assignAllBtn'),
+            expenseSubmitBtn: document.getElementById('expenseSubmitBtn'),
+            expenseCancelBtn: document.getElementById('expenseCancelBtn'),
+            expensesList: document.getElementById('expensesList'),
+            emptyExpensesMsg: document.getElementById('emptyExpensesMsg'),
+            summaryContent: document.getElementById('summaryContent'),
+            viewTrip: document.getElementById('view-trip'),
+            viewHistory: document.getElementById('view-history'),
+            navTrip: document.getElementById('nav-trip'),
+            navHist: document.getElementById('nav-hist'),
+            historyList: document.getElementById('historyList'),
+            historyCount: document.getElementById('historyCount'),
+            headerActions: document.getElementById('headerActions'),
+            toast: document.getElementById('toast')
+        };
+
+        // Initialize Inputs
+        els.tripNameInput.value = state.tripName || '';
+        els.startDateInput.value = state.startDate || '';
+        els.endDateInput.value = state.endDate || '';
+        els.expenseDate.value = todayISO;
+
+        // --- View Switching ---
+        function switchView(viewName) {
+            currentView = viewName;
+            if (viewName === 'trip') {
+                els.viewTrip.classList.remove('hidden');
+                els.viewHistory.classList.add('hidden');
+                els.navTrip.classList.add('text-primary');
+                els.navTrip.classList.remove('text-gray-400');
+                els.navHist.classList.remove('text-primary');
+                els.navHist.classList.add('text-gray-400');
+                els.headerActions.style.display = 'block';
+                renderTrip();
+            } else {
+                els.viewTrip.classList.add('hidden');
+                els.viewHistory.classList.remove('hidden');
+                els.navTrip.classList.remove('text-primary');
+                els.navTrip.classList.add('text-gray-400');
+                els.navHist.classList.add('text-primary');
+                els.navHist.classList.remove('text-gray-400');
+                els.headerActions.style.display = 'none';
+                renderHistory();
+            }
+        }
+
+        // --- Persistence ---
+        function saveState() {
+            localStorage.setItem('fairshare_trip_state', JSON.stringify(state));
+            autoSyncHistory();
+            renderTrip();
+        }
+
+        function saveHistory() {
+            localStorage.setItem('fairshare_trip_history', JSON.stringify(history));
+            renderHistory();
+        }
+
+        // --- Helpers ---
+        function generateId() {
+            return Math.random().toString(36).substr(2, 9);
+        }
+
+        function formatCurrency(num) {
+            return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(num || 0);
+        }
+
+        function formatDate(iso) {
+            if (!iso) return '';
+            const d = new Date(iso + 'T00:00:00');
+            return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function handleEnter(e, callback) {
+            if (e.key === 'Enter') callback();
+        }
+
+        function showToast(msg) {
+            els.toast.textContent = msg;
+            els.toast.classList.remove('opacity-0');
+            setTimeout(() => els.toast.classList.add('opacity-0'), 2000);
+        }
+
+        function showError(msg) {
+            document.getElementById('errorBannerMsg').textContent = msg;
+            const banner = document.getElementById('errorBanner');
+            banner.classList.remove('hidden');
+            clearTimeout(window._errorBannerTimeout);
+            window._errorBannerTimeout = setTimeout(() => banner.classList.add('hidden'), 4000);
+        }
+
+        let _confirmCallback = null;
+        function showConfirmModal(title, msg, onConfirm) {
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalMsg').textContent = msg;
+            _confirmCallback = onConfirm;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            _confirmCallback = null;
+        }
+        document.getElementById('confirmModalOkBtn').addEventListener('click', () => {
+            if (_confirmCallback) _confirmCallback();
+            closeConfirmModal();
+        });
+
+        // --- Trip basics ---
+        function updateTripName(val) {
+            state.tripName = val;
+            state.saved = false;
+            saveState();
+        }
+
+        function updateStartDate(val) {
+            state.startDate = val;
+            state.saved = false;
+            saveState();
+        }
+
+        function updateEndDate(val) {
+            state.endDate = val;
+            state.saved = false;
+            saveState();
+        }
+
+        function resetTrip() {
+            showConfirmModal(
+                '¿Empezar de nuevo?',
+                'Esto borrará todos los datos no guardados del viaje actual.',
+                () => {
+                    state = { tripName: '', startDate: '', endDate: '', people: [], expenses: [], saved: false, historyId: null };
+                    els.tripNameInput.value = '';
+                    els.startDateInput.value = '';
+                    els.endDateInput.value = '';
+                    cancelEditExpense();
+                    saveState();
+                }
+            );
+        }
+
+        // --- People ---
+        function addPerson() {
+            const name = els.personInput.value.trim();
+            if (!name) { showError('Escribe un nombre para la persona.'); return; }
+            if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                showError('Esa persona ya está añadida.');
+                return;
+            }
+            state.people.push({ id: generateId(), name });
+            els.personInput.value = '';
+            state.saved = false;
+            saveState();
+        }
+
+        function removePerson(id) {
+            showConfirmModal(
+                '¿Quitar persona?',
+                'Se quitará de todos los gastos en los que aparezca.',
+                () => {
+                    state.people = state.people.filter(p => p.id !== id);
+                    state.expenses.forEach(e => {
+                        e.assignedTo = (e.assignedTo || []).filter(pid => pid !== id);
+                        if (e.paidBy === id) e.paidBy = '';
+                    });
+                    _expenseAssigned = _expenseAssigned.filter(pid => pid !== id);
+                    delete _expenseShares[id];
+                    if (_expensePaidBy === id) _expensePaidBy = '';
+                    if (editingExpenseId) {
+                        const e = state.expenses.find(x => x.id === editingExpenseId);
+                        if (e && !state.people.some(p => p.id === e.paidBy)) e.paidBy = '';
+                    }
+                    state.saved = false;
+                    saveState();
+                }
+            );
+        }
+
+        function renderPeople() {
+            els.peopleList.innerHTML = '';
+            if (state.people.length === 0) {
+                els.emptyPeopleMsg.classList.remove('hidden');
+                return;
+            }
+            els.emptyPeopleMsg.classList.add('hidden');
+            state.people.forEach(p => {
+                const chip = document.createElement('div');
+                chip.className = 'flex items-center gap-1.5 bg-gray-100 rounded-full px-3 py-1.5 text-sm';
+                chip.innerHTML = `<span class="font-semibold text-gray-700">${p.name}</span>
+                    <button onclick="removePerson('${p.id}')" class="text-gray-400 hover:text-red-500 w-4 h-4 flex items-center justify-center" title="Quitar">
+                        <i class="fa-solid fa-times text-xs"></i>
+                    </button>`;
+                els.peopleList.appendChild(chip);
+            });
+        }
+
+        // --- Expenses ---
+        function renderExpenseForm() {
+            els.expensePayer.innerHTML = '<option value="">Nadie</option>'
+                + state.people.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            els.expensePayer.value = _expensePaidBy;
+
+            if (state.people.length === 0) {
+                els.expenseAssigned.innerHTML = '<p class="text-xs text-gray-400 italic text-center w-full py-1.5">Añade personas en el paso 1 primero.</p>';
+                els.assignAllBtn.classList.add('hidden');
+                renderExpenseShares();
+                return;
+            }
+            els.assignAllBtn.classList.remove('hidden');
+            els.expenseAssigned.innerHTML = state.people.map(p => {
+                const sel = _expenseAssigned.includes(p.id);
+                return `<button type="button" onclick="toggleAssigned('${p.id}')"
+                    class="px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors active:scale-95 ${sel ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border-gray-200'}">${p.name}</button>`;
+            }).join('');
+            renderExpenseShares();
+        }
+
+        // Per-person amounts for the expense being edited. Empty inputs mean
+        // "split evenly"; entering amounts overrides the even split.
+        function renderExpenseShares() {
+            const box = els.expenseShares;
+            if (_expenseAssigned.length === 0) {
+                box.innerHTML = '<p class="text-xs text-gray-400 italic">Selecciona quién lo consume.</p>';
+                return;
+            }
+            box.innerHTML = _expenseAssigned.map(pid => {
+                const p = state.people.find(x => x.id === pid);
+                const val = (_expenseShares[pid] != null && _expenseShares[pid] !== '') ? _expenseShares[pid] : '';
+                return `<div class="flex items-center gap-2">
+                    <span class="flex-1 text-sm text-gray-700 truncate">${p ? p.name : '?'}</span>
+                    <input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" value="${val}"
+                        onchange="setExpenseShare('${pid}', this.value)"
+                        class="w-24 bg-white border border-gray-200 rounded-lg p-2 text-sm text-right focus:border-primary outline-none">
+                </div>`;
+            }).join('');
+        }
+
+        function setExpenseShare(pid, value) {
+            const v = parseFloat(value);
+            if (!isNaN(v) && v >= 0) _expenseShares[pid] = v;
+            else _expenseShares[pid] = '';
+        }
+
+        function setExpensePayer(val) {
+            _expensePaidBy = val;
+        }
+
+        function toggleAssigned(pid) {
+            if (_expenseAssigned.includes(pid)) {
+                _expenseAssigned = _expenseAssigned.filter(id => id !== pid);
+            } else {
+                _expenseAssigned.push(pid);
+            }
+            renderExpenseForm();
+        }
+
+        function toggleAssignAll() {
+            if (_expenseAssigned.length === state.people.length) {
+                _expenseAssigned = [];
+            } else {
+                _expenseAssigned = state.people.map(p => p.id);
+            }
+            renderExpenseForm();
+        }
+
+        function addExpense() {
+            const name = els.expenseName.value.trim();
+            const amount = parseFloat(els.expenseAmount.value);
+            const category = els.expenseCategory.value || 'otros';
+            const date = els.expenseDate.value || todayISO;
+            const paidBy = els.expensePayer.value || '';
+
+            if (!name) { showError('Escribe un concepto para el gasto.'); return; }
+            if (isNaN(amount) || amount <= 0) { showError('Introduce un importe válido.'); return; }
+            if (state.people.length === 0) { showError('Añade al menos una persona.'); return; }
+
+            const shares = {};
+            let hasCustom = false;
+            _expenseAssigned.forEach(pid => {
+                const v = parseFloat(_expenseShares[pid]);
+                if (!isNaN(v) && v > 0) { shares[pid] = v; hasCustom = true; }
+            });
+
+            const expense = {
+                id: editingExpenseId || generateId(),
+                name,
+                amount,
+                category,
+                date,
+                paidBy,
+                assignedTo: _expenseAssigned.slice(),
+                shares: hasCustom ? shares : undefined
+            };
+
+            if (editingExpenseId) {
+                const idx = state.expenses.findIndex(e => e.id === editingExpenseId);
+                if (idx !== -1) state.expenses[idx] = expense;
+            } else {
+                state.expenses.push(expense);
+            }
+
+            cancelEditExpense();
+            state.saved = false;
+            saveState();
+        }
+
+        function startEditExpense(id) {
+            const e = state.expenses.find(x => x.id === id);
+            if (!e) return;
+            editingExpenseId = id;
+            els.expenseName.value = e.name;
+            els.expenseAmount.value = e.amount;
+            els.expenseCategory.value = e.category;
+            els.expenseDate.value = e.date || todayISO;
+            _expensePaidBy = e.paidBy || '';
+            _expenseAssigned = (e.assignedTo || []).slice();
+            _expenseShares = {};
+            if (e.shares) {
+                (e.assignedTo || []).forEach(pid => {
+                    if (e.shares[pid] != null) _expenseShares[pid] = e.shares[pid];
+                });
+            }
+            els.expenseSubmitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Guardar Cambios';
+            els.expenseCancelBtn.classList.remove('hidden');
+            renderExpenseForm();
+            document.getElementById('expenseSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function cancelEditExpense() {
+            editingExpenseId = null;
+            els.expenseName.value = '';
+            els.expenseAmount.value = '';
+            els.expenseCategory.value = 'transporte';
+            els.expenseDate.value = todayISO;
+            _expensePaidBy = '';
+            _expenseAssigned = [];
+            _expenseShares = {};
+            els.expenseSubmitBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Añadir Gasto';
+            els.expenseCancelBtn.classList.add('hidden');
+            renderExpenseForm();
+        }
+
+        function deleteExpense(id) {
+            showConfirmModal(
+                '¿Eliminar gasto?',
+                'Este gasto se quitará del viaje y del resumen.',
+                () => {
+                    state.expenses = state.expenses.filter(e => e.id !== id);
+                    if (editingExpenseId === id) cancelEditExpense();
+                    state.saved = false;
+                    saveState();
+                }
+            );
+        }
+
+        function renderExpensesList() {
+            els.expensesList.innerHTML = '';
+            if (state.expenses.length === 0) {
+                els.emptyExpensesMsg.classList.remove('hidden');
+                return;
+            }
+            els.emptyExpensesMsg.classList.add('hidden');
+
+            state.expenses.forEach(e => {
+                const cat = CATEGORIES[e.category] || CATEGORIES.otros;
+                const payer = state.people.find(p => p.id === e.paidBy);
+                const shares = expenseShares(e);
+                const assignedHtml = (e.assignedTo || []).length > 0
+                    ? e.assignedTo.map(pid => {
+                        const p = state.people.find(x => x.id === pid);
+                        return `<span class="inline-block bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 text-[10px] font-semibold">${p ? p.name : '?'} ${formatCurrency(shares[pid] || 0)}</span>`;
+                    }).join('')
+                    : `<span class="text-[10px] text-orange-500 font-semibold"><i class="fa-solid fa-triangle-exclamation mr-0.5"></i>Sin asignar</span>`;
+
+                const card = document.createElement('div');
+                card.className = 'bg-gray-50 border border-gray-100 rounded-xl p-3.5';
+                card.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-start gap-3 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid ${cat.icon} text-primary text-base"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-gray-900 text-sm truncate">${e.name}</div>
+                                <div class="text-[10px] text-gray-400 mt-0.5">${cat.label}${e.date ? ' · ' + formatDate(e.date) : ''}</div>
+                                <div class="text-xs text-gray-500 mt-1">Pagado por: <span class="font-semibold text-gray-700">${payer ? payer.name : '—'}</span></div>
+                                <div class="flex flex-wrap gap-1 mt-1.5">${assignedHtml}</div>
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <div class="font-mono font-bold text-gray-900">${formatCurrency(e.amount)}</div>
+                            <div class="flex gap-2 mt-1 justify-end">
+                                <button onclick="startEditExpense('${e.id}')" class="text-gray-400 hover:text-primary w-5 h-5 flex items-center justify-center" title="Editar"><i class="fa-solid fa-pen text-xs"></i></button>
+                                <button onclick="deleteExpense('${e.id}')" class="text-gray-400 hover:text-red-500 w-5 h-5 flex items-center justify-center" title="Eliminar"><i class="fa-solid fa-trash text-xs"></i></button>
+                            </div>
+                        </div>
+                    </div>`;
+                els.expensesList.appendChild(card);
+            });
+        }
+
+        // --- Totals & Settlement ---
+
+        // How much each assigned person pays for an expense. By default the cost
+        // is split evenly across the assigned people, but an expense can carry
+        // explicit per-person `shares` (e.g. a dinner where someone ordered
+        // something more expensive) that override the even split.
+        function expenseShares(e) {
+            const assigned = e.assignedTo || [];
+            const n = assigned.length;
+            const out = {};
+            if (n === 0) return out;
+            const hasCustom = e.shares && assigned.some(pid => (e.shares[pid] || 0) > 0.005);
+            if (hasCustom) {
+                assigned.forEach(pid => { out[pid] = e.shares[pid] || 0; });
+            } else {
+                const per = e.amount / n;
+                assigned.forEach(pid => { out[pid] = per; });
+            }
+            return out;
+        }
+
+        function computeTotals() {
+            const paid = {};
+            const share = {};
+            const categoryTotals = {};
+            let grandTotal = 0;
+            let unassignedTotal = 0;
+
+            state.people.forEach(p => { paid[p.id] = 0; share[p.id] = 0; });
+
+            state.expenses.forEach(e => {
+                grandTotal += e.amount;
+                categoryTotals[e.category] = (categoryTotals[e.category] || 0) + e.amount;
+                if (e.paidBy && paid[e.paidBy] !== undefined) paid[e.paidBy] += e.amount;
+
+                const shares = expenseShares(e);
+                const keys = Object.keys(shares);
+                if (keys.length === 0) {
+                    unassignedTotal += e.amount;
+                } else {
+                    keys.forEach(pid => { if (share[pid] !== undefined) share[pid] += shares[pid]; });
+                }
+            });
+
+            return { grandTotal, categoryTotals, paid, share, unassignedTotal };
+        }
+
+        // Each assigned person owes the payer of each expense their share. Debts
+        // between the same two people are then netted into a single amount, so
+        // "David owes Nacho X" and "Nacho owes David Y" become one line. Debts are
+        // only ever netted within a pair — never across different people — so two
+        // people who never shared an expense never end up with a transfer.
+        function computeNetPairDebts() {
+            const gross = {};
+            state.expenses.forEach(e => {
+                if (!e.paidBy) return;
+                const shares = expenseShares(e);
+                const keys = Object.keys(shares);
+                if (keys.length === 0) return;
+                keys.forEach(pid => {
+                    const amount = shares[pid];
+                    if (amount <= 0.005) return;
+                    if (pid === e.paidBy) return; // a payer doesn't owe themself
+                    const a = pid, b = e.paidBy;
+                    const key = [a, b].sort().join('|');
+                    if (!gross[key]) gross[key] = { a, b, aToB: 0, bToA: 0 };
+                    if (gross[key].a === a) gross[key].aToB += amount;
+                    else gross[key].bToA += amount;
+                });
+            });
+            const debts = [];
+            Object.keys(gross).forEach(key => {
+                const g = gross[key];
+                const net = g.aToB - g.bToA; // >0: a owes b
+                if (Math.abs(net) <= 0.005) return;
+                if (net > 0) debts.push({ fromId: g.a, toId: g.b, amount: net });
+                else debts.push({ fromId: g.b, toId: g.a, amount: -net });
+            });
+            return debts;
+        }
+
+        function renderSummary() {
+            const totals = computeTotals();
+
+            if (state.people.length === 0 && state.expenses.length === 0) {
+                els.summaryContent.innerHTML = `<div class="text-center text-gray-400 italic text-sm py-6">Añade personas y gastos para ver el resumen.</div>`;
+                return;
+            }
+
+            let html = '';
+
+            // Grand total
+            html += `
+                <div class="flex justify-between items-center border-b-2 border-gray-800 pb-3">
+                    <span class="font-mono text-sm font-bold">TOTAL DEL VIAJE</span>
+                    <span class="font-mono text-2xl font-bold text-gray-900">${formatCurrency(totals.grandTotal)}</span>
+                </div>`;
+
+            // Category breakdown
+            const catKeys = Object.keys(CATEGORIES).filter(c => totals.categoryTotals[c]);
+            if (catKeys.length > 0) {
+                html += `<div class="flex flex-wrap gap-1.5 mt-3">`;
+                catKeys.forEach(c => {
+                    const cat = CATEGORIES[c];
+                    html += `<div class="bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1 text-[10px] font-semibold text-gray-600 flex items-center gap-1">
+                        <i class="fa-solid ${cat.icon} text-primary"></i> ${cat.label} · ${formatCurrency(totals.categoryTotals[c])}</div>`;
+                });
+                html += `</div>`;
+            }
+
+            // Unassigned warning
+            if (totals.unassignedTotal > 0.01) {
+                html += `
+                    <div class="mt-3 bg-orange-50 p-3 rounded-lg border border-orange-100 flex justify-between items-center text-orange-700 font-bold text-sm">
+                        <span><i class="fa-solid fa-circle-exclamation mr-1"></i> Gastos Sin Asignar</span>
+                        <span>${formatCurrency(totals.unassignedTotal)}</span>
+                    </div>`;
+            }
+
+            // Per person
+            if (state.people.length > 0) {
+                html += `<div class="mt-4 space-y-2">`;
+                state.people.forEach(p => {
+                    const sh = totals.share[p.id] || 0;
+                    const pa = totals.paid[p.id] || 0;
+                    html += `
+                        <div class="border-b border-gray-100 pb-2 last:border-0">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-gray-800">${p.name}</span>
+                                <span class="font-mono font-bold text-primary">${formatCurrency(sh)}</span>
+                            </div>
+                            <div class="text-xs text-gray-400 mt-0.5">Pagó ${formatCurrency(pa)}</div>
+                        </div>`;
+                });
+                html += `</div>`;
+
+                // Settlement: netted who owes whom, grouped by who is owed
+                const debts = computeNetPairDebts();
+                html += `
+                    <div class="mt-5 pt-4 border-t border-gray-100">
+                        <h4 class="text-xs font-bold text-gray-500 uppercase mb-2">Ajuste de Cuentas</h4>`;
+                if (debts.length === 0) {
+                    html += `<div class="text-xs text-gray-400 italic">No hay deudas que saldar.</div>`;
+                } else {
+                    const byCreditor = {};
+                    debts.forEach(d => {
+                        (byCreditor[d.toId] = byCreditor[d.toId] || []).push(d);
+                    });
+                    Object.keys(byCreditor).forEach(credId => {
+                        const creditor = state.people.find(p => p.id === credId);
+                        const rows = byCreditor[credId];
+                        const total = rows.reduce((s, r) => s + r.amount, 0);
+                        html += `
+                            <div class="mb-2.5">
+                                <div class="text-xs font-bold text-gray-500 mb-1"><i class="fa-solid fa-wallet text-primary mr-1"></i>${creditor ? creditor.name : '?'} — le deben ${formatCurrency(total)}</div>
+                                <div class="space-y-0.5 text-sm font-mono text-gray-600 pl-2 border-l-2 border-gray-100">`;
+                        rows.forEach(r => {
+                            const debtor = state.people.find(p => p.id === r.fromId);
+                            html += `<div><span class="font-bold text-gray-800">${debtor ? debtor.name : '?'}</span> debe a <span class="font-bold text-gray-800">${creditor ? creditor.name : '?'}</span> <span class="font-bold text-primary">${formatCurrency(r.amount)}</span></div>`;
+                        });
+                        html += `</div></div>`;
+                    });
+                }
+                html += `</div>`;
+            }
+
+            els.summaryContent.innerHTML = html;
+        }
+
+        // --- History ---
+
+        function buildHistoryEntry() {
+            const totals = computeTotals();
+            return {
+                id: state.historyId || generateId(),
+                name: state.tripName.trim() || 'Viaje sin nombre',
+                startDate: state.startDate,
+                endDate: state.endDate,
+                total: totals.grandTotal,
+                peopleCount: state.people.length,
+                expenseCount: state.expenses.length,
+                snapshot: JSON.parse(JSON.stringify(state)),
+                createdAt: Date.now()
+            };
+        }
+
+        // The current trip is kept in history automatically: on every change we
+        // create or refresh the entry matching `state.historyId`, so the Historial
+        // tab always mirrors the trip with no "Guardar" step.
+        function autoSyncHistory() {
+            const hasContent = state.tripName.trim() !== '' || state.expenses.length > 0;
+            if (!hasContent) return; // empty trip → nothing to store yet
+
+            const existing = state.historyId ? history.find(h => h.id === state.historyId) : null;
+
+            if (existing) {
+                const entry = buildHistoryEntry();
+                entry.createdAt = existing.createdAt; // keep original creation time
+                history[history.indexOf(existing)] = entry;
+            } else {
+                // New trip (or its history entry was deleted): create a fresh entry.
+                if (!state.historyId || !history.some(h => h.id === state.historyId)) {
+                    state.historyId = generateId();
+                }
+                history.unshift(buildHistoryEntry());
+                localStorage.setItem('fairshare_trip_state', JSON.stringify(state));
+            }
+            saveHistory();
+        }
+
+        function resumeTrip(id) {
+            const entry = history.find(h => h.id === id);
+            if (!entry || !entry.snapshot) return;
+            state = JSON.parse(JSON.stringify(entry.snapshot));
+            state.historyId = entry.id;
+            els.tripNameInput.value = state.tripName || '';
+            els.startDateInput.value = state.startDate || '';
+            els.endDateInput.value = state.endDate || '';
+            cancelEditExpense();
+            saveState();
+            switchView('trip');
+            showToast('Viaje reanudado');
+        }
+
+        function deleteTrip(id) {
+            showConfirmModal(
+                '¿Eliminar viaje?',
+                'Este viaje se quitará del historial. El viaje actual no se ve afectado.',
+                () => {
+                    history = history.filter(h => h.id !== id);
+                    if (state.historyId === id) {
+                        state.historyId = null;
+                        localStorage.setItem('fairshare_trip_state', JSON.stringify(state));
+                    }
+                    saveHistory();
+                }
+            );
+        }
+
+        function renderHistory() {
+            els.historyList.innerHTML = '';
+            els.historyCount.textContent = `${history.length} viaje${history.length === 1 ? '' : 's'}`;
+
+            if (history.length === 0) {
+                els.historyList.innerHTML = `
+                    <div class="text-center text-gray-400 py-10">
+                        <i class="fa-solid fa-clock-rotate-left text-4xl mb-3 opacity-20"></i>
+                        <p>No hay viajes guardados aún.</p>
+                    </div>`;
+                return;
+            }
+
+            history.forEach(h => {
+                const dates = [h.startDate, h.endDate].filter(Boolean).map(formatDate).join(' — ');
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl shadow-sm p-5';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-2">
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-gray-900 truncate"><i class="fa-solid fa-plane-departure text-secondary mr-2"></i>${h.name}</h3>
+                            <div class="text-xs text-gray-400 mt-0.5">${dates || 'Fechas sin definir'}</div>
+                        </div>
+                        <button onclick="deleteTrip('${h.id}')" class="text-gray-400 hover:text-red-500 w-8 h-8 flex items-center justify-center flex-shrink-0" title="Eliminar">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="text-xs text-gray-500">${h.peopleCount} persona${h.peopleCount === 1 ? '' : 's'} · ${h.expenseCount} gasto${h.expenseCount === 1 ? '' : 's'}</div>
+                        <div class="font-mono font-bold text-lg text-primary">${formatCurrency(h.total)}</div>
+                    </div>
+                    <button onclick="resumeTrip('${h.id}')" class="mt-3 w-full bg-primary hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-sliders"></i> Reanudar viaje
+                    </button>`;
+                els.historyList.appendChild(card);
+            });
+        }
+
+        // --- Render ---
+        function renderTrip() {
+            if (currentView !== 'trip') return;
+            renderPeople();
+            renderExpenseForm();
+            renderExpensesList();
+            renderSummary();
+        }
+
+        renderTrip();
+        renderHistory();
+    </script>
+</body>
+</html>
