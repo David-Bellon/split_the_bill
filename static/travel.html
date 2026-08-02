@@ -143,7 +143,7 @@
                     <div class="col-span-3">
                         <label class="block text-xs text-gray-500 mb-1">Importe</label>
                         <input type="number" id="expenseAmount" placeholder="0.00" step="0.01" class="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm focus:border-primary outline-none"
-                            onkeypress="handleEnter(event, addExpense)">
+                            onkeypress="handleEnter(event, addExpense)" oninput="renderExpenseShares()">
                     </div>
                     <div class="col-span-3">
                         <label class="block text-xs text-gray-500 mb-1">Categoría</label>
@@ -176,7 +176,7 @@
                     <div class="col-span-6">
                         <label class="block text-xs text-gray-500 mb-1">Importe de cada uno</label>
                         <div id="expenseShares" class="space-y-1.5"></div>
-                        <p class="text-[10px] text-gray-400 mt-1">Vacío = se reparte a partes iguales. Rellena para importes distintos (ej. en la cena, cada uno pagó lo suyo).</p>
+                        <p class="text-[10px] text-gray-400 mt-1" id="expenseSharesHint">Vacío = se reparte a partes iguales. Rellena para importes distintos (ej. en la cena, cada uno pagó lo suyo).</p>
                     </div>
                     <div class="col-span-6 flex gap-2">
                         <button onclick="addExpense()" id="expenseSubmitBtn" class="flex-1 bg-gray-800 text-white rounded-lg py-2.5 font-medium shadow-md hover:bg-gray-900 active:scale-95 transition-all">
@@ -322,6 +322,7 @@
             expensePayer: document.getElementById('expensePayer'),
             expenseAssigned: document.getElementById('expenseAssigned'),
             expenseShares: document.getElementById('expenseShares'),
+            expenseSharesHint: document.getElementById('expenseSharesHint'),
             assignAllBtn: document.getElementById('assignAllBtn'),
             expenseSubmitBtn: document.getElementById('expenseSubmitBtn'),
             expenseCancelBtn: document.getElementById('expenseCancelBtn'),
@@ -540,23 +541,32 @@
         }
 
         // Per-person amounts for the expense being edited. Empty inputs mean
-        // "split evenly"; entering amounts overrides the even split.
+        // "split evenly"; the even share is shown live as a placeholder preview
+        // that updates as the importe changes. Entering amounts overrides it.
         function renderExpenseShares() {
             const box = els.expenseShares;
             if (_expenseAssigned.length === 0) {
                 box.innerHTML = '<p class="text-xs text-gray-400 italic">Selecciona quién lo consume.</p>';
+                if (els.expenseSharesHint) els.expenseSharesHint.textContent = '';
                 return;
             }
+            const amount = parseFloat(els.expenseAmount.value);
+            const evenShare = (isNaN(amount) || amount <= 0) ? 0 : amount / _expenseAssigned.length;
             box.innerHTML = _expenseAssigned.map(pid => {
                 const p = state.people.find(x => x.id === pid);
                 const val = (_expenseShares[pid] != null && _expenseShares[pid] !== '') ? _expenseShares[pid] : '';
                 return `<div class="flex items-center gap-2">
                     <span class="flex-1 text-sm text-gray-700 truncate">${p ? p.name : '?'}</span>
-                    <input type="number" min="0" step="0.01" inputmode="decimal" placeholder="0.00" value="${val}"
+                    <input type="number" min="0" step="0.01" inputmode="decimal" placeholder="${evenShare ? formatCurrency(evenShare) : '0.00'}" value="${val}"
                         onchange="setExpenseShare('${pid}', this.value)"
-                        class="w-24 bg-white border border-gray-200 rounded-lg p-2 text-sm text-right focus:border-primary outline-none">
+                        class="w-28 bg-white border border-gray-200 rounded-lg p-2 text-sm text-right focus:border-primary outline-none">
                 </div>`;
             }).join('');
+            if (els.expenseSharesHint) {
+                els.expenseSharesHint.innerHTML = evenShare
+                    ? `Vacío = se reparte a partes iguales (<b class="text-primary font-bold">${formatCurrency(evenShare)} cada uno</b>). Rellena para importes distintos.`
+                    : 'Vacío = se reparte a partes iguales. Rellena para importes distintos (ej. en la cena, cada uno pagó lo suyo).';
+            }
         }
 
         function setExpenseShare(pid, value) {
