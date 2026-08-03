@@ -175,7 +175,7 @@
             <section class="bg-white rounded-3xl border border-gray-100 card-soft p-5 list-enter" id="expenseSection">
                 <h2 class="flex items-center gap-2.5 mb-4">
                     <span class="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-purple-600 text-white text-xs font-bold flex items-center justify-center shadow-sm flex-shrink-0">2</span>
-                    <span class="text-sm font-bold text-gray-900">¿Qué gastos compartís?</span>
+                    <span class="text-sm font-bold text-gray-900">Añadir un gasto</span>
                     <span class="ml-auto text-[10px] font-bold bg-gray-100 text-gray-500 rounded-full px-2.5 py-1" id="expenseCountPill">0</span>
                 </h2>
 
@@ -247,9 +247,6 @@
                     </div>
                 </div>
 
-                <div id="expensesList" class="space-y-3">
-                    <p class="text-gray-400 text-sm italic text-center py-4" id="emptyExpensesMsg">No hay gastos aún.</p>
-                </div>
             </section>
 
             <!-- Step 3: Summary + Settlement -->
@@ -267,6 +264,41 @@
                     <p class="text-center text-[10px] text-gray-400 mt-4 flex items-center justify-center gap-1.5"><i class="fa-solid fa-bookmark"></i>Se guarda automáticamente en Historial</p>
                 </div>
             </section>
+        </div>
+
+        <!-- VIEW: EXPENSES -->
+        <div id="view-expenses" class="hidden space-y-5">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-2xl bg-indigo-50 text-primary flex items-center justify-center"><i class="fa-solid fa-receipt text-sm"></i></div>
+                    Gastos
+                </h2>
+                <div class="bg-indigo-50 text-primary px-3 py-1.5 rounded-full text-xs font-bold" id="expensesTabCount">0 gastos</div>
+            </div>
+
+            <div id="expensesTotalStrip" class="hidden bg-white rounded-3xl border border-gray-100 card-soft p-4 flex items-center justify-between">
+                <span class="text-sm font-semibold text-gray-600">Total del viaje</span>
+                <span class="font-mono font-bold text-lg text-gray-900" id="expensesTotalValue"></span>
+            </div>
+
+            <div id="expensesList" class="space-y-3">
+                <p class="text-gray-400 text-sm italic text-center py-4" id="emptyExpensesMsg">No hay gastos aún.</p>
+            </div>
+        </div>
+
+        <!-- VIEW: SETTLE -->
+        <div id="view-settle" class="hidden space-y-5">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-2xl bg-emerald-50 text-secondary flex items-center justify-center"><i class="fa-solid fa-arrows-rotate text-sm"></i></div>
+                    Ajuste de Cuentas
+                </h2>
+                <div class="bg-indigo-50 text-primary px-3 py-1.5 rounded-full text-xs font-bold" id="settleCount"></div>
+            </div>
+
+            <div id="settleContent">
+                <div class="text-center text-gray-400 italic text-sm py-6">Añade personas y gastos para ver el ajuste de cuentas.</div>
+            </div>
         </div>
 
         <!-- VIEW: HISTORY -->
@@ -298,6 +330,14 @@
                 <button onclick="switchView('trip')" class="flex-1 flex flex-col items-center py-1.5 rounded-2xl transition-all" id="nav-trip">
                     <div class="nav-bubble w-8 h-8 rounded-xl bg-primary text-white shadow-md shadow-primary/25 flex items-center justify-center transition-all"><i class="fa-solid fa-route text-sm"></i></div>
                     <div class="nav-label text-[9px] font-bold mt-1 text-gray-900 transition-colors">Viaje</div>
+                </button>
+                <button onclick="switchView('expenses')" class="flex-1 flex flex-col items-center py-1.5 rounded-2xl transition-all" id="nav-expenses">
+                    <div class="nav-bubble w-8 h-8 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center transition-all"><i class="fa-solid fa-receipt text-sm"></i></div>
+                    <div class="nav-label text-[9px] font-bold mt-1 text-gray-400 transition-colors">Gastos</div>
+                </button>
+                <button onclick="switchView('settle')" class="flex-1 flex flex-col items-center py-1.5 rounded-2xl transition-all" id="nav-settle">
+                    <div class="nav-bubble w-8 h-8 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center transition-all"><i class="fa-solid fa-arrows-rotate text-sm"></i></div>
+                    <div class="nav-label text-[9px] font-bold mt-1 text-gray-400 transition-colors">Ajuste</div>
                 </button>
                 <button onclick="switchView('history')" class="flex-1 flex flex-col items-center py-1.5 rounded-2xl transition-all" id="nav-hist">
                     <div class="nav-bubble w-8 h-8 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center transition-all"><i class="fa-solid fa-clock-rotate-left text-sm"></i></div>
@@ -405,9 +445,18 @@
             emptyExpensesMsg: document.getElementById('emptyExpensesMsg'),
             summaryContent: document.getElementById('summaryContent'),
             viewTrip: document.getElementById('view-trip'),
+            viewExpenses: document.getElementById('view-expenses'),
+            viewSettle: document.getElementById('view-settle'),
             viewHistory: document.getElementById('view-history'),
             navTrip: document.getElementById('nav-trip'),
+            navExpenses: document.getElementById('nav-expenses'),
+            navSettle: document.getElementById('nav-settle'),
             navHist: document.getElementById('nav-hist'),
+            expensesTabCount: document.getElementById('expensesTabCount'),
+            expensesTotalStrip: document.getElementById('expensesTotalStrip'),
+            expensesTotalValue: document.getElementById('expensesTotalValue'),
+            settleContent: document.getElementById('settleContent'),
+            settleCount: document.getElementById('settleCount'),
             historyList: document.getElementById('historyList'),
             historyCount: document.getElementById('historyCount'),
             headerActions: document.getElementById('headerActions'),
@@ -426,49 +475,50 @@
         els.expenseDate.value = todayISO;
 
         // --- View Switching ---
-        function setNavActive(tripActive) {
-            const styleBubble = (btn, bubbleCls, labelCls) => {
+        const NAV_TABS = {
+            trip:     { el: 'navTrip',     icon: 'fa-route' },
+            expenses: { el: 'navExpenses', icon: 'fa-receipt' },
+            settle:   { el: 'navSettle',   icon: 'fa-arrows-rotate' },
+            history:  { el: 'navHist',     icon: 'fa-clock-rotate-left' }
+        };
+
+        function setNavActive(activeView) {
+            Object.keys(NAV_TABS).forEach(key => {
+                const btn = els[NAV_TABS[key].el];
                 const b = btn.querySelector('.nav-bubble');
                 const l = btn.querySelector('.nav-label');
-                if (b) b.className = 'nav-bubble w-8 h-8 rounded-xl flex items-center justify-center transition-all ' + bubbleCls;
-                if (l) l.className = 'nav-label text-[9px] font-bold mt-1 transition-colors ' + labelCls;
-            };
-            if (tripActive) {
-                styleBubble(els.navTrip, 'bg-primary text-white shadow-md shadow-primary/25', 'text-gray-900');
-                styleBubble(els.navHist, 'bg-gray-100 text-gray-400', 'text-gray-400');
-            } else {
-                styleBubble(els.navTrip, 'bg-gray-100 text-gray-400', 'text-gray-400');
-                styleBubble(els.navHist, 'bg-primary text-white shadow-md shadow-primary/25', 'text-gray-900');
-            }
+                const active = key === activeView;
+                if (b) {
+                    b.className = 'nav-bubble w-8 h-8 rounded-xl flex items-center justify-center transition-all '
+                        + (active ? 'bg-primary text-white shadow-md shadow-primary/25' : 'bg-gray-100 text-gray-400');
+                    const icon = b.querySelector('i');
+                    if (icon) icon.className = 'fa-solid ' + NAV_TABS[key].icon + ' text-sm';
+                }
+                if (l) l.className = 'nav-label text-[9px] font-bold mt-1 transition-colors ' + (active ? 'text-gray-900' : 'text-gray-400');
+            });
         }
 
         function switchView(viewName) {
             currentView = viewName;
-            if (viewName === 'trip') {
-                els.viewTrip.classList.remove('hidden');
-                els.viewHistory.classList.add('hidden');
-                els.headerActions.style.display = 'flex';
-                setNavActive(true);
-                renderTrip();
-            } else {
-                els.viewTrip.classList.add('hidden');
-                els.viewHistory.classList.remove('hidden');
-                els.headerActions.style.display = 'none';
-                setNavActive(false);
-                renderHistory();
-            }
+            els.viewTrip.classList.toggle('hidden', viewName !== 'trip');
+            els.viewExpenses.classList.toggle('hidden', viewName !== 'expenses');
+            els.viewSettle.classList.toggle('hidden', viewName !== 'settle');
+            els.viewHistory.classList.toggle('hidden', viewName !== 'history');
+            els.headerActions.style.display = (viewName === 'history') ? 'none' : 'flex';
+            setNavActive(viewName);
+            renderActiveView();
         }
 
         // --- Persistence ---
         function saveState() {
             localStorage.setItem('fairshare_trip_state', JSON.stringify(state));
             autoSyncHistory();
-            renderTrip();
+            renderActiveView();
         }
 
         function saveHistory() {
             localStorage.setItem('fairshare_trip_history', JSON.stringify(history));
-            renderHistory();
+            renderActiveView();
         }
 
         // --- Helpers ---
@@ -755,8 +805,11 @@
             }
             els.expenseSubmitBtn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Guardar Cambios';
             els.expenseCancelBtn.classList.remove('hidden');
-            renderExpenseForm();
-            document.getElementById('expenseSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (currentView !== 'trip') switchView('trip');
+            else renderExpenseForm();
+            setTimeout(() => {
+                document.getElementById('expenseSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 0);
         }
 
         function cancelEditExpense() {
@@ -786,7 +839,22 @@
             );
         }
 
-        function renderExpensesList() {
+        function renderExpensesTab() {
+            if (currentView !== 'expenses') return;
+            updateHeaderTotal();
+            const totals = computeTotals();
+            if (els.expensesTabCount) {
+                els.expensesTabCount.textContent = `${state.expenses.length} gasto${state.expenses.length === 1 ? '' : 's'}`;
+            }
+            if (els.expensesTotalStrip) {
+                if (state.expenses.length === 0) {
+                    els.expensesTotalStrip.classList.add('hidden');
+                } else {
+                    els.expensesTotalStrip.classList.remove('hidden');
+                    els.expensesTotalValue.textContent = formatCurrency(totals.grandTotal);
+                }
+            }
+
             els.expensesList.innerHTML = '';
             if (state.expenses.length === 0) {
                 els.emptyExpensesMsg.classList.remove('hidden');
@@ -917,15 +985,6 @@
         function renderSummary() {
             const totals = computeTotals();
 
-            if (els.headerTotal) {
-                if (state.expenses.length === 0) {
-                    els.headerTotal.classList.add('hidden');
-                } else {
-                    els.headerTotal.classList.remove('hidden');
-                    els.headerTotal.textContent = formatCurrency(totals.grandTotal);
-                }
-            }
-
             if (state.people.length === 0 && state.expenses.length === 0) {
                 els.summaryContent.innerHTML = `<div class="text-center text-gray-400 italic text-sm py-6">Añade personas y gastos para ver el resumen.</div>`;
                 return;
@@ -980,78 +1039,12 @@
                         </div>`;
                 });
                 html += `</div>`;
-
-                // Settlement: netted who owes whom, grouped by who is owed
-                const debts = computeNetPairDebts();
-                html += `
-                    <div class="mt-5 pt-4 border-t border-gray-100">
-                        <h4 class="flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-1">
-                            <i class="fa-solid fa-arrows-rotate text-primary"></i> Ajuste de Cuentas
-                        </h4>
-                        <p class="text-[10px] text-gray-400 mb-3">Quién debe pagar a quién para dejar el viaje saldado</p>`;
-                if (debts.length === 0) {
-                    html += `
-                        <div class="flex items-center gap-2.5 bg-gray-50 rounded-2xl px-4 py-3 text-sm text-gray-500">
-                            <span class="w-8 h-8 rounded-full bg-secondary/10 text-secondary flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check text-xs"></i></span>
-                            No hay deudas que saldar, todo está saldado.
-                        </div>`;
-                } else {
-                    // Group transfers by creditor (the person who is owed)
-                    const byCreditor = {};
-                    debts.forEach(d => {
-                        (byCreditor[d.toId] = byCreditor[d.toId] || []).push(d);
-                    });
-                    let transferCount = 0;
-                    html += `<div class="space-y-3">`;
-                    Object.keys(byCreditor).forEach(credId => {
-                        const creditor = state.people.find(p => p.id === credId);
-                        const rows = byCreditor[credId].slice().sort((a, b) => b.amount - a.amount);
-                        const total = rows.reduce((s, r) => s + r.amount, 0);
-                        transferCount += rows.length;
-                        const credInitial = creditor && creditor.name ? creditor.name.charAt(0).toUpperCase() : '?';
-                        html += `
-                            <div class="bg-gray-50 rounded-2xl p-3.5">
-                                <div class="flex items-center justify-between mb-2.5">
-                                    <div class="flex items-center gap-2 min-w-0">
-                                        <span class="w-7 h-7 rounded-full bg-secondary/15 text-secondary text-[10px] font-bold flex items-center justify-center flex-shrink-0">${credInitial}</span>
-                                        <div class="min-w-0">
-                                            <div class="text-xs font-bold text-gray-800 truncate">${creditor ? creditor.name : '?'}</div>
-                                            <div class="text-[9px] text-gray-400">le deben</div>
-                                        </div>
-                                    </div>
-                                    <span class="font-mono text-sm font-bold text-secondary flex-shrink-0">${formatCurrency(total)}</span>
-                                </div>
-                                <div class="space-y-2">`;
-                        rows.forEach(r => {
-                            const debtor = state.people.find(p => p.id === r.fromId);
-                            const debtInitial = debtor && debtor.name ? debtor.name.charAt(0).toUpperCase() : '?';
-                            html += `
-                                <div class="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5">
-                                    <span class="w-7 h-7 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">${debtInitial}</span>
-                                    <span class="text-xs font-bold text-gray-800 truncate flex-1">${debtor ? debtor.name : '?'}</span>
-                                    <span class="flex flex-col items-center flex-shrink-0 leading-none px-1">
-                                        <span class="text-[8px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">debe a</span>
-                                        <i class="fa-solid fa-arrow-right text-gray-300 text-[10px]"></i>
-                                    </span>
-                                    <span class="text-xs font-bold text-secondary truncate flex-1 text-right">${creditor ? creditor.name : '?'}</span>
-                                    <span class="font-mono font-bold text-gray-900 text-sm flex-shrink-0 min-w-[3.5rem] text-right whitespace-nowrap">${formatCurrency(r.amount)}</span>
-                                </div>`;
-                        });
-                        html += `</div></div>`;
-                    });
-                    const totalSettle = debts.reduce((s, r) => s + r.amount, 0);
-                    html += `</div>`;
-                    html += `
-                        <div class="flex items-center justify-between mt-2 px-1 text-[10px] text-gray-400">
-                            <span>${transferCount} transferencia${transferCount === 1 ? '' : 's'}</span>
-                            <span class="font-mono font-semibold">Total a saldar: ${formatCurrency(totalSettle)}</span>
-                        </div>`;
-                }
-                html += `</div>`;
             }
 
             els.summaryContent.innerHTML = html;
         }
+
+        // --- Expenses list (Gastos tab) ---
 
         // --- History ---
 
@@ -1124,6 +1117,7 @@
         }
 
         function renderHistory() {
+            if (currentView !== 'history') return;
             els.historyList.innerHTML = '';
             els.historyCount.textContent = `${history.length} viaje${history.length === 1 ? '' : 's'}`;
 
@@ -1167,16 +1161,113 @@
         }
 
         // --- Render ---
+        function renderActiveView() {
+            if (currentView === 'trip') renderTrip();
+            else if (currentView === 'expenses') renderExpensesTab();
+            else if (currentView === 'settle') renderSettleTab();
+            else if (currentView === 'history') renderHistory();
+        }
+
+        function updateHeaderTotal() {
+            if (!els.headerTotal) return;
+            if (state.expenses.length === 0) {
+                els.headerTotal.classList.add('hidden');
+            } else {
+                els.headerTotal.classList.remove('hidden');
+                els.headerTotal.textContent = formatCurrency(computeTotals().grandTotal);
+            }
+        }
+
         function renderTrip() {
             if (currentView !== 'trip') return;
+            updateHeaderTotal();
             renderPeople();
             renderExpenseForm();
-            renderExpensesList();
             renderSummary();
             if (els.tripPeopleCount) els.tripPeopleCount.textContent = state.people.length;
             if (els.tripExpenseCount) els.tripExpenseCount.textContent = state.expenses.length;
             if (els.peopleCountPill) els.peopleCountPill.textContent = state.people.length;
             if (els.expenseCountPill) els.expenseCountPill.textContent = state.expenses.length;
+        }
+
+        // The settlement ("Ajuste de Cuentas"): who owes whom after netting
+        // debts between each pair. Grouped by creditor, same math as always.
+        function renderSettleTab() {
+            if (currentView !== 'settle') return;
+            updateHeaderTotal();
+            const debts = computeNetPairDebts();
+
+            if (els.settleCount) {
+                els.settleCount.textContent = debts.length === 0
+                    ? 'Todo saldado'
+                    : `${debts.length} transferencia${debts.length === 1 ? '' : 's'}`;
+            }
+
+            if (state.people.length === 0 || state.expenses.length === 0) {
+                els.settleContent.innerHTML = `<div class="text-center text-gray-400 italic text-sm py-6">Añade personas y gastos para ver el ajuste de cuentas.</div>`;
+                return;
+            }
+
+            let html = '';
+            if (debts.length === 0) {
+                html += `
+                    <div class="flex items-center gap-2.5 bg-white border border-gray-100 card-soft rounded-2xl px-4 py-3 text-sm text-gray-500">
+                        <span class="w-8 h-8 rounded-full bg-secondary/10 text-secondary flex items-center justify-center flex-shrink-0"><i class="fa-solid fa-check text-xs"></i></span>
+                        No hay deudas que saldar, todo está saldado.
+                    </div>`;
+            } else {
+                // Group transfers by creditor (the person who is owed)
+                const byCreditor = {};
+                debts.forEach(d => {
+                    (byCreditor[d.toId] = byCreditor[d.toId] || []).push(d);
+                });
+                let transferCount = 0;
+                html += `<div class="space-y-3">`;
+                Object.keys(byCreditor).forEach(credId => {
+                    const creditor = state.people.find(p => p.id === credId);
+                    const rows = byCreditor[credId].slice().sort((a, b) => b.amount - a.amount);
+                    const total = rows.reduce((s, r) => s + r.amount, 0);
+                    transferCount += rows.length;
+                    const credInitial = creditor && creditor.name ? creditor.name.charAt(0).toUpperCase() : '?';
+                    html += `
+                        <div class="bg-gray-50 rounded-2xl p-3.5">
+                            <div class="flex items-center justify-between mb-2.5">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <span class="w-7 h-7 rounded-full bg-secondary/15 text-secondary text-[10px] font-bold flex items-center justify-center flex-shrink-0">${credInitial}</span>
+                                    <div class="min-w-0">
+                                        <div class="text-xs font-bold text-gray-800 truncate">${creditor ? creditor.name : '?'}</div>
+                                        <div class="text-[9px] text-gray-400">le deben</div>
+                                    </div>
+                                </div>
+                                <span class="font-mono text-sm font-bold text-secondary flex-shrink-0">${formatCurrency(total)}</span>
+                            </div>
+                            <div class="space-y-2">`;
+                    rows.forEach(r => {
+                        const debtor = state.people.find(p => p.id === r.fromId);
+                        const debtInitial = debtor && debtor.name ? debtor.name.charAt(0).toUpperCase() : '?';
+                        html += `
+                            <div class="flex items-center gap-2 bg-white rounded-xl px-3 py-2.5">
+                                <span class="w-7 h-7 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center flex-shrink-0">${debtInitial}</span>
+                                <span class="text-xs font-bold text-gray-800 truncate flex-1">${debtor ? debtor.name : '?'}</span>
+                                <span class="flex flex-col items-center flex-shrink-0 leading-none px-1">
+                                    <span class="text-[8px] uppercase tracking-wider font-bold text-gray-400 mb-0.5">debe a</span>
+                                    <i class="fa-solid fa-arrow-right text-gray-300 text-[10px]"></i>
+                                </span>
+                                <span class="text-xs font-bold text-secondary truncate flex-1 text-right">${creditor ? creditor.name : '?'}</span>
+                                <span class="font-mono font-bold text-gray-900 text-sm flex-shrink-0 min-w-[3.5rem] text-right whitespace-nowrap">${formatCurrency(r.amount)}</span>
+                            </div>`;
+                    });
+                    html += `</div></div>`;
+                });
+                const totalSettle = debts.reduce((s, r) => s + r.amount, 0);
+                html += `</div>`;
+                html += `
+                    <div class="flex items-center justify-between mt-2 px-1 text-[10px] text-gray-400">
+                        <span>${transferCount} transferencia${transferCount === 1 ? '' : 's'}</span>
+                        <span class="font-mono font-semibold">Total a saldar: ${formatCurrency(totalSettle)}</span>
+                    </div>`;
+            }
+            els.settleContent.innerHTML = html;
         }
 
         renderTrip();
